@@ -26,10 +26,12 @@ namespace bst_number_list
                 catch (FormatException)
                 {
                     Console.WriteLine("Unable to convert '{0}'.", tokens[i]);
+                    return null;
                 }
                 catch (OverflowException)
                 {
                     Console.WriteLine("'{0}' is out of range of the Int32 type.", tokens[i]);
+                    return null;
                 }
             }
             return arr;
@@ -43,15 +45,14 @@ namespace bst_number_list
             BST binarySearchTree = null;
             do
             {
-                Console.WriteLine("Enter a collection of numbers in the range [0, 100], separated by spaces:\n");
+                Console.WriteLine("Enter a collection of numbers in the range [0, 100], separated by spaces:");
                 int[] numberList = StringParser.ParseToIntArray(Console.ReadLine());
-                binarySearchTree = new BST(numberList);
-            } while (binarySearchTree != null);      // BST constructor returns null if user entered 0 numbers or number list with duplicates
+                if (numberList != null) binarySearchTree = new BST(numberList);
+            } while (binarySearchTree == null);      // BST constructor returns null if user entered 0 numbers or number list with duplicates
 
-            // 
             binarySearchTree.PrintInorder();
-            
-
+            binarySearchTree.PrintTreeStatistics();
+            Console.WriteLine("Done.");
         }
     }
 }
