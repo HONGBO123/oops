@@ -46,7 +46,7 @@
             // button1
             // 
             this.button1.Image = ((System.Drawing.Image)(resources.GetObject("button1.Image")));
-            this.button1.Location = new System.Drawing.Point(479, 148);
+            this.button1.Location = new System.Drawing.Point(490, 315);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(244, 244);
             this.button1.TabIndex = 1;
