@@ -25,7 +25,18 @@ namespace WinForms
 
         private void button1_Click(object sender, EventArgs e)
         {
+            // Step 1. Generate random int list.
+            List<int> randomIntList = new List<int>(Constants.listNumberElements);
+            RandomIntListGenerator.Generate(ref randomIntList, Constants.listLowerBound, Constants.listUpperBound);
+
             textBox1.Text = "This field will be updated with the program's output.";
         }
+    }
+
+    static class Constants
+    {
+        public const int listLowerBound = 0;
+        public const int listUpperBound = 20000;
+        public const int listNumberElements = 10000;
     }
 }

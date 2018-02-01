@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace WinForms
 {
-    class DuplicateRemover
+    class UniqueCounter
     {
+        public static int UsingDict(ref List<int> numberList)
+        {
+            return 0;
+        }
     }
 }

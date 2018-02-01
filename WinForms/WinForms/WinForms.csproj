@@ -51,9 +51,10 @@
     <Compile Include="BasicWinForm.Designer.cs">
       <DependentUpon>BasicWinForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="DuplicateRemover.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomIntListGenerator.cs" />
+    <Compile Include="UniqueCounter.cs" />
     <EmbeddedResource Include="BasicWinForm.resx">
       <DependentUpon>BasicWinForm.cs</DependentUpon>
     </EmbeddedResource>
