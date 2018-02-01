@@ -100,8 +100,9 @@ namespace WinForms
                 "the number of unique items." + Environment.NewLine +
                 "Time Complexity: The algorithm has O(N) time complexity. We run through the list once. For each element in the list, we perform two O(1) " +
                 "operations. In the absolute worst case (EXTREMELY unlikely), these O(1) operations take O(k) time where k is the number of elements added " +
-                "so far. This only occurs if every element hashes to the same bucket. " +
-                "In the end, we return Dictionary.Count, an O(1) operation. This makes the total time complexity O(N)";
+                "so far. This only occurs if every element hashes to the same bucket. In this EXTREMELY rare situation, we repeat the O(k) operations N times, " +
+                "making the time complexity O(N^2) by a simple geometric series calculation. But, we don't really need to worry about it... " +
+                "In the end, we simply return Dictionary.Count, an O(1) operation. This makes the total time complexity O(N).";
         }
     }
 }
