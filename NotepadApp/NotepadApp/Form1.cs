@@ -25,7 +25,15 @@ namespace NotepadApp
 
         private void LoadText(TextReader sr)
         {
-
+            textBox1.Clear();
+            try
+            {
+                textBox1.AppendText(sr.ReadToEnd());
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Error: couldn't read file from disk. Original Error: " + e.Message);
+            }
         }
 
         private void loadFromFileToolStripMenuItem_Click(object sender, EventArgs e)
@@ -33,24 +41,10 @@ namespace NotepadApp
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             openFileDialog1.Title = "Select a file to be read and displayed in the window.";
 
-            // Code below borrowed from https://msdn.microsoft.com/en-us/library/system.windows.forms.openfiledialog.openfile(v=vs.110).aspx
-            Stream myStream = null;
-            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)        // User selected file and clicked "ok"
             {
-                try
-                {
-                    if ((myStream = openFileDialog1.OpenFile()) != null)
-                    {
-                        using (myStream)
-                        {
-                            // read stream here.
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error: couldn't read file from disk. Original Error: " + ex.Message);
-                }
+                StreamReader sr = new StreamReader(openFileDialog1.FileName);      // add some exception handling right here because files suck
+                LoadText(sr);
             }
         }
 
