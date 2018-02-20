@@ -10,24 +10,61 @@ namespace bst_number_list
     /*
      * Node: node class for a binary search tree node
      */
-    class Node<T> : IComparable<T>
+    public class Node
     {
         // All variables are internal, meaning only classes within the same assembly can access them (code in different assembly cannot)
-        internal Node<T> Left; 
-        internal Node<T> Right;
-        internal T Data;
+        internal Node Left; 
+        internal Node Right;
+        internal int Data;
         
         // Constructor
-        public Node(T data)
+        public Node(int data)
         {
             Data = data;
             Left = null;
             Right = null;
         }
 
-        public int CompareTo(T other)
+        //private static bool Comparison(ref Node lhs, ref Node rhs)
+        //{
+        //    if (lhs == null || rhs == null)
+        //    {
+        //        //return false
+        //    }
+        //}
+
+        public static bool operator ==(Node lhs, Node rhs)
         {
-            throw new NotImplementedException();
+            if (lhs == rhs)
+            {
+                return true;
+            }
+            return lhs.Data.Equals(rhs.Data);
+        }
+
+        public static bool operator !=(Node lhs, Node rhs)
+        {
+            return lhs.Data != rhs.Data;
+        }
+
+        public static bool operator >(Node lhs, Node rhs)
+        {
+            return lhs.Data > rhs.Data;
+        }
+
+        public static bool operator <(Node lhs, Node rhs)
+        {
+            return lhs.Data < rhs.Data;
+        }
+
+        public static bool operator >=(Node lhs, Node rhs)
+        {
+            return lhs.Data >= rhs.Data;
+        }
+
+        public static bool operator <=(Node lhs, Node rhs)
+        {
+            return lhs.Data <= rhs.Data;
         }
 
         // Returns the string's Data field when Node.ToString() is called
@@ -36,38 +73,37 @@ namespace bst_number_list
             return Data.ToString();
         }
 
-        
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /*
      * BST: Binary Search Tree
      */
-    class BST<Node> : BinTree<Node<IComparable>>
+    class BST : BinTree<int>
     {
         // Private Data Fields
-        private Node<IComparable> head = null;
+        private Node head = null;
         private int nodeCount = 0;
 
-        // Internal insert method
-        //private void Insert(int num, ref Node node)
-        //{
-        //    if (node == null)
-        //    {
-        //        node = new Node(num);
-        //        ++nodeCount;
-        //    }
-        //    else if (node.Data < num)       // num belongs in right subtree
-        //    {
-        //        Insert(num, ref node.Right);
-        //    }
-        //    else if (node.Data > num)        // num belonds in left subtree
-        //    {
-        //        Insert(num, ref node.Left); 
-        //    }
-        //}
+        // Constructor from array of integers
+        public BST(int[] numberList)
+        {
+            foreach (int val in numberList)
+            {
+                this.Insert(val);
+            }
+        }
 
         // Internal inorder traversal in which the processing step is printing to the screen.
-        private void PrintInorderRecursive(ref Node<IComparable> node)
+        private void PrintInorderRecursive(ref Node node)
         {
             if (node != null)
             {
@@ -84,7 +120,7 @@ namespace bst_number_list
         }
 
         // Internal method to recursively calculate the maximum depth (aka the height) of the tree
-        private int MaxDepth(ref Node<IComparable> node)
+        private int MaxDepth(ref Node node)
         {
             if (node == null)    // define a null node to have height 0
             {
@@ -109,16 +145,6 @@ namespace bst_number_list
         {
             int theoreticalMinimum = (int)Math.Floor(Math.Log(nodeCount, 2)) + 1;   
             Console.WriteLine("\tMinimum number of levels that a tree with '{0}' nodes could have: '{1}'.", nodeCount, theoreticalMinimum);
-        }
-
-        // Constructor from array of templated type IComparable (i.e. must be comparable)
-        public BST(IComparable[] numberList)
-        {
-            foreach (IComparable val in numberList)
-            {
-                Node<IComparable> n = new Node<IComparable>(val);
-                Insert(n);
-            }
         }
 
         // Public method to print interesting statistics about the BST-- namely, number of nodes, levels, and minimum level count (theoretically)
@@ -147,12 +173,40 @@ namespace bst_number_list
             throw new NotImplementedException();
         }
 
-        public override void Insert(Node<IComparable> val)
+        public override void Insert(int val)
         {
-            throw new NotImplementedException();
+            Node newNode = new Node(val);       // Create the new node
+            Console.WriteLine(newNode);
+            this.InsertHelper(ref newNode, ref head);                           // Insert in appropriate location
         }
 
-        public override bool Contains(Node<IComparable> val)
+        // Internal insert helper
+        private void InsertHelper(ref Node newNode, ref Node tree)
+        {
+            if (tree == null)
+            {
+                tree = newNode;
+                ++nodeCount;
+            }
+            else if (newNode == tree)
+            {
+                return;
+            }
+            else if (tree < newNode)       // newNode belongs in right subtree
+            {
+                InsertHelper(ref newNode, ref tree.Right);
+            }
+            else if (tree > newNode)        // newNode belonds in left subtree
+            {
+                InsertHelper(ref newNode, ref tree.Left);
+            }
+            //else
+            //{
+            //    newNode = null;
+            //}
+        }
+
+        public override bool Contains(int val)
         {
             throw new NotImplementedException();
         }
