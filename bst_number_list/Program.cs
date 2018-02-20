@@ -48,25 +48,15 @@ namespace bst_number_list
     {
         static void Main(string[] args)
         {
-            BST binarySearchTree = null;      // declare BST
-            do
-            {
-                Console.WriteLine("Enter a collection of numbers in the range [0, 100], separated by spaces:");
-                int[] numberList = StringParser.ParseToIntArray(Console.ReadLine());          // process user input
-                if (numberList != null)          // if no errors occurred, create a BST
-                {
-                    try
-                    {
-                        binarySearchTree = new BST(numberList);         // create BST; throws an error if duplicates are present in numberList[]
-                    } catch (DuplicateError DE)
-                    {
-                        Console.WriteLine(DE.Message);
-                        binarySearchTree = null;
-                    }
-                }
-            } while (binarySearchTree == null);      // Continue getting user input while invalid input
+            BST<int> binarySearchTree = null;      // declare BST
 
-            binarySearchTree.PrintInorder();
+            Console.WriteLine("Enter a collection of numbers in the range [0, 100], separated by spaces:");
+            int[] numberList = StringParser.ParseToIntArray(Console.ReadLine());          // process user input
+            if (numberList != null)          // if no errors occurred, create a BST
+            {
+                binarySearchTree = new BST<int>(numberList);         // create BST; ignore duplicates
+            }
+            binarySearchTree.InOrder();
             binarySearchTree.PrintTreeStatistics();
             Console.WriteLine("Done.");
         }
