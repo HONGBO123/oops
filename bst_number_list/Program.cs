@@ -1,4 +1,20 @@
-﻿using System;
+﻿/*
+ * Assignment #4: Abstract Tree in Console
+ * Author: Kyler Little
+ * Last Updated: 2/20/2018
+ * Description:
+ *      This program asks the user to enter space-separated numbers between 0 and 100.
+ *      The program will then insert the values into a binary search tree (which inherits
+ *      from an abstract binary tree class) and prints off various interesting statistics
+ *      about the tree. For instance, the program will "sort" the numbers by doing an
+ *      inorder traversal.
+ * 
+ */ 
+
+
+
+
+using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -48,13 +64,13 @@ namespace bst_number_list
     {
         static void Main(string[] args)
         {
-            BST binarySearchTree = null;      // declare BST
+            BST<int> binarySearchTree = null;      // declare BST
 
             Console.WriteLine("Enter a collection of numbers in the range [0, 100], separated by spaces:");
             int[] numberList = StringParser.ParseToIntArray(Console.ReadLine());          // process user input
             if (numberList != null)          // if no errors occurred, create a BST
             {
-                binarySearchTree = new BST(numberList);         // create BST; ignore duplicates
+                binarySearchTree = new BST<int>(numberList);         // create BST; ignore duplicates
             }
             binarySearchTree.InOrder();
             binarySearchTree.PrintTreeStatistics();

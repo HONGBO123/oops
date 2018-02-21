@@ -1,4 +1,21 @@
-﻿using System;
+﻿/*
+ * Assignment #4: Abstract Tree in Console
+ * Author: Kyler Little
+ * Last Updated: 2/20/2018
+ * Description:
+ *      This program asks the user to enter space-separated numbers between 0 and 100.
+ *      The program will then insert the values into a binary search tree (which inherits
+ *      from an abstract binary tree class) and prints off various interesting statistics
+ *      about the tree. For instance, the program will "sort" the numbers by doing an
+ *      inorder traversal.
+ * 
+ */
+
+
+
+
+
+using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
@@ -10,61 +27,43 @@ namespace bst_number_list
     /*
      * Node: node class for a binary search tree node
      */
-    public class Node
+    public class Node<Comparable>
     {
         // All variables are internal, meaning only classes within the same assembly can access them (code in different assembly cannot)
-        internal Node Left; 
-        internal Node Right;
-        internal int Data;
+        internal Node<Comparable> Left; 
+        internal Node<Comparable> Right;
+        internal Comparable Data;
         
         // Constructor
-        public Node(int data)
+        public Node(Comparable data)
         {
             Data = data;
             Left = null;
             Right = null;
         }
 
-        //private static bool Comparison(ref Node lhs, ref Node rhs)
-        //{
-        //    if (lhs == null || rhs == null)
-        //    {
-        //        //return false
-        //    }
-        //}
-
-        public static bool operator ==(Node lhs, Node rhs)
+        /*
+         * For the following comparison operators (<, >, <=, >=), we use the Comparer class to compare
+         * generic types. Comparer returns +1 if >, 0 if ==, and -1 if <.
+         */ 
+        public static bool operator >(Node<Comparable> lhs, Node<Comparable> rhs)
         {
-            if (lhs == rhs)
-            {
-                return true;
-            }
-            return lhs.Data.Equals(rhs.Data);
+            return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) > 0;
         }
 
-        public static bool operator !=(Node lhs, Node rhs)
+        public static bool operator <(Node<Comparable> lhs, Node<Comparable> rhs)
         {
-            return lhs.Data != rhs.Data;
+            return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) < 0;
         }
 
-        public static bool operator >(Node lhs, Node rhs)
+        public static bool operator >=(Node<Comparable> lhs, Node<Comparable> rhs)
         {
-            return lhs.Data > rhs.Data;
+            return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) >= 0;
         }
 
-        public static bool operator <(Node lhs, Node rhs)
+        public static bool operator <=(Node<Comparable> lhs, Node<Comparable> rhs)
         {
-            return lhs.Data < rhs.Data;
-        }
-
-        public static bool operator >=(Node lhs, Node rhs)
-        {
-            return lhs.Data >= rhs.Data;
-        }
-
-        public static bool operator <=(Node lhs, Node rhs)
-        {
-            return lhs.Data <= rhs.Data;
+            return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) <= 0;
         }
 
         // Returns the string's Data field when Node.ToString() is called
@@ -75,9 +74,21 @@ namespace bst_number_list
 
         public override bool Equals(object obj)
         {
-            return base.Equals(obj);
+            if (obj == null || this == null)            // if either reference type is null, then return null
+            {
+                return false;
+            }
+
+            Node<Comparable> n = obj as Node<Comparable>;       // cast obj as Node
+            if (n == null)                                      // If unable to cast, return false
+            {
+                return false;
+            }
+
+            return Comparer<Comparable>.Default.Compare(this.Data, n.Data) == 0;         // Otherwise, use Comparer to compare the templated Data values
         }
 
+        // Override HashCode method
         public override int GetHashCode()
         {
             return base.GetHashCode();
@@ -87,29 +98,51 @@ namespace bst_number_list
     /*
      * BST: Binary Search Tree
      */
-    class BST : BinTree<int>
+    class BST<Comparable> : BinTree<Comparable>
     {
         // Private Data Fields
-        private Node head = null;
+        private Node<Comparable> head = null;
         private int nodeCount = 0;
 
         // Constructor from array of integers
-        public BST(int[] numberList)
+        public BST(Comparable[] comparableList)
         {
-            foreach (int val in numberList)
+            foreach (Comparable val in comparableList)
             {
                 this.Insert(val);
             }
         }
 
         // Internal inorder traversal in which the processing step is printing to the screen.
-        private void PrintInorderRecursive(ref Node node)
+        private void PrintInOrderRecursive(ref Node<Comparable> node)
         {
             if (node != null)
             {
-                PrintInorderRecursive(ref node.Left);
+                PrintInOrderRecursive(ref node.Left);
                 Console.Write(node); Console.Write(' ');     // add space between each node
-                PrintInorderRecursive(ref node.Right);
+                PrintInOrderRecursive(ref node.Right);
+            }
+        }
+
+        // Internal postorder traversal in which the processing step is printing to the screen.
+        private void PrintPostOrderRecursive(ref Node<Comparable> node)
+        {
+            if (node != null)
+            {
+                PrintPostOrderRecursive(ref node.Left);
+                PrintPostOrderRecursive(ref node.Right);
+                Console.Write(node); Console.Write(' ');     // add space between each node
+            }
+        }
+
+        // Internal preorder traversal in which the processing step is printing to the screen.
+        private void PrintPreOrderRecursive(ref Node<Comparable> node)
+        {
+            if (node != null)
+            {
+                Console.Write(node); Console.Write(' ');     // add space between each node
+                PrintPreOrderRecursive(ref node.Left);
+                PrintPreOrderRecursive(ref node.Right);
             }
         }
 
@@ -120,7 +153,7 @@ namespace bst_number_list
         }
 
         // Internal method to recursively calculate the maximum depth (aka the height) of the tree
-        private int MaxDepth(ref Node node)
+        private int MaxDepth(ref Node<Comparable> node)
         {
             if (node == null)    // define a null node to have height 0
             {
@@ -159,38 +192,31 @@ namespace bst_number_list
         public override void InOrder()
         {
             Console.Write("Tree contents: ");
-            PrintInorderRecursive(ref head);
+            PrintInOrderRecursive(ref head);
             Console.Write('\n');   // add in new line
         }
 
         public override void PreOrder()
         {
-            throw new NotImplementedException();
+            Console.Write("Tree contents: ");
+            PrintPreOrderRecursive(ref head);
+            Console.Write('\n');   // add in new line
         }
 
         public override void PostOrder()
         {
-            throw new NotImplementedException();
-        }
-
-        public override void Insert(int val)
-        {
-            Node newNode = new Node(val);       // Create the new node
-            Console.WriteLine(newNode);
-            this.InsertHelper(ref newNode, ref head);                           // Insert in appropriate location
+            Console.Write("Tree contents: ");
+            PrintPostOrderRecursive(ref head);
+            Console.Write('\n');   // add in new line
         }
 
         // Internal insert helper
-        private void InsertHelper(ref Node newNode, ref Node tree)
+        private void InsertHelper(ref Node<Comparable> newNode, ref Node<Comparable> tree)
         {
-            if (tree == null)
+            if (tree == null)               // Then it's time to insert
             {
                 tree = newNode;
-                ++nodeCount;
-            }
-            else if (newNode == tree)
-            {
-                return;
+                ++nodeCount;                // increment node count
             }
             else if (tree < newNode)       // newNode belongs in right subtree
             {
@@ -200,15 +226,40 @@ namespace bst_number_list
             {
                 InsertHelper(ref newNode, ref tree.Left);
             }
-            //else
-            //{
-            //    newNode = null;
-            //}
         }
 
-        public override bool Contains(int val)
+        public override void Insert(Comparable val)
         {
-            throw new NotImplementedException();
+            Node<Comparable> newNode = new Node<Comparable>(val);               // Create the new node
+            this.InsertHelper(ref newNode, ref head);                           // Insert in appropriate location
+        }
+
+        private bool ContainsHelper(ref Node<Comparable> newNode, ref Node<Comparable> tree)
+        {
+            if (tree == null)        // If null, we've reached a dead end. Return false.
+            {
+                return false;
+            }
+            else if (tree.Equals(newNode))          // Utilize overridden Equals Method so as not to access internals of the data
+            {                                       // Note that I am not using '=='; this is because Microsoft recommends not to override this operator
+                return true;                        // for reference types... so I didn't
+            }
+            else if (tree < newNode)       // newNode is in right subtree (if it exists)
+            {
+                return ContainsHelper(ref newNode, ref tree.Right);
+            }
+            else        // tree > newNode, so traverse left subtree
+            {
+                return ContainsHelper(ref newNode, ref tree.Left);
+            }
+        }
+
+        public override bool Contains(Comparable val)
+        {
+            Node<Comparable> newNode = new Node<Comparable>(val);        // Contains by comparing nodes themselves; don't access internals of Node; solution is to make temp node
+            bool result = ContainsHelper(ref newNode, ref head);
+            newNode = null;         // set temp node to null, so that garbage collector gets it
+            return result;
         }
     }
 }
