@@ -42,10 +42,30 @@ namespace bst_number_list
             Right = null;
         }
 
+        public static bool operator ==(Node<Comparable> lhs, Node<Comparable> rhs)
+        {
+            if (System.Object.ReferenceEquals(lhs, rhs))           // If references match, then obviously same object. This includes if both references are null.
+            {
+                return true;
+            }
+
+            if ((object)lhs == null || (object)rhs == null)        // If one of references is null, returh false.
+            {
+                return false;
+            }
+
+            return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) == 0;          // Otherwise, return result of comparing Data Properties.
+        }
+
+        public static bool operator !=(Node<Comparable> lhs, Node<Comparable> rhs)
+        {
+            return !(lhs == rhs);       // Utilize '==' override above.
+        }
+
         /*
          * For the following comparison operators (<, >, <=, >=), we use the Comparer class to compare
          * generic types. Comparer returns +1 if >, 0 if ==, and -1 if <.
-         */ 
+         */
         public static bool operator >(Node<Comparable> lhs, Node<Comparable> rhs)
         {
             return Comparer<Comparable>.Default.Compare(lhs.Data, rhs.Data) > 0;
@@ -240,9 +260,9 @@ namespace bst_number_list
             {
                 return false;
             }
-            else if (tree.Equals(newNode))          // Utilize overridden Equals Method so as not to access internals of the data
-            {                                       // Note that I am not using '=='; this is because Microsoft recommends not to override this operator
-                return true;                        // for reference types... so I didn't
+            else if (tree == newNode)    // Utilize overridden '==' so as not to access internals of the data
+            {                              
+                return true;                       
             }
             else if (tree < newNode)       // newNode is in right subtree (if it exists)
             {
