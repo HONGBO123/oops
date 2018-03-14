@@ -17,13 +17,41 @@ namespace Spreadsheet
         /// </summary>
         static class Constants
         {
-            public const int numberOfRows = 50;
-            public const string columnHeaders = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z";    // can easily add more space-separated header names
+            public const int numberOfColumns = 26;         // currently accepts (1 - inf)
+            public const int numberOfRows = 50;            // currently accepts (1 = inf)
             public const int gridWidth = 800;
             public const int gridHeight = 500;
-            public const int formWidth = gridWidth;
+            public const int formWidth = gridWidth + 30;
             public const int formHeight = gridHeight + 50;
         }
+
+        /// <summary>
+        /// This function automatically determines the column headers (based on Constants.numberOfColumns) and 
+        /// returns the column headers as an array of strings.
+        /// If you'd like to have a special character in the alphabet, add this to the alphabet string below (separated by a delimiter).
+        /// </summary>
+        /// <returns></returns>
+        private string[] ColumnHeaders()
+        {
+            string[] alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z".Split(new char[] { ',' });
+            string[] columnHeaders = new string[Constants.numberOfColumns];
+            for (int i = 0; i < Constants.numberOfColumns; ++i)
+            {
+                string header = "";
+                // Loop sets current header; if numberOfColumns > 26, we begin doubling letters. If > 52, triple. And so on.
+                for (int j = 0; j <= i / alphabet.Length; j++)        
+                {
+                    header += alphabet[i % alphabet.Length];        // add current letter in alphabet (i % alphabet.Length) to header.
+                }
+                columnHeaders.SetValue(header, i);       // Set Header
+            }
+            return columnHeaders;
+        }
+
+        /// <summary>
+        /// Backend spreadsheet object.
+        /// </summary>
+        private SpreadsheetEngine.Spreadsheet _spreadsheet;
 
         public SpreadsheetForm()
         {
@@ -32,6 +60,7 @@ namespace Spreadsheet
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            _spreadsheet = new SpreadsheetEngine.Spreadsheet(Constants.numberOfRows, Constants.numberOfColumns);
             SetUpFormView();
             SetUpDataGridView();
         }
@@ -42,18 +71,47 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// Disallows user from adding/removing rows; initializes columns with headers 'A' to 'Z'
+        /// Disallows user from adding/removing rows.
+        /// Initialize columns with headers.
         /// </summary>
         private void SetUpDataGridView()
         {
+            // Column Properties Set-Up
             this.dataGridView1.Columns.Clear();
-            this.dataGridView1.AllowUserToAddRows = false;
-            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             this.dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
-            foreach (string colHeader in Constants.columnHeaders.Split(new char[] { ','}))       // split columnHeaders into separate strings by delimiter ','
+                // Column Headers
+            foreach (string colHeader in ColumnHeaders())
             {
                 this.dataGridView1.Columns.Add(colHeader, colHeader);       // add as column header
             }
+
+            // Row Properties Set-Up
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToDeleteRows = false;
+            this.dataGridView1.RowHeadersVisible = true;
+            this.dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+                // Row Headers
+            for (int i = 1; i <= Constants.numberOfRows; i++)
+            {
+                dataGridView1.Rows.Add();
+                dataGridView1.Rows[i - 1].HeaderCell.Value = i.ToString();      // i - 1 since Rows are 0-indexed; humans like 1-indexing though
+            }
+        }
+
+        private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+
+        }
+
+        private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            //_spreadsheet.CellPropertyChanged += SOMETHING... to invoke the event
+            // The event args will be:
+            // new string value: dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()
+            // row: e.RowIndex
+            // col: e.ColumnIndex          (an integer)
+            // Basically what we want to do is: dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = Whatever the event returns in the backend!!
         }
     }
 }

@@ -7,26 +7,29 @@ using System.ComponentModel;
 
 namespace SpreadsheetEngine
 {
-    public abstract class SpreadsheetCell : INotifyPropertyChanged
+    public abstract class AbstractCell : INotifyPropertyChanged
     {
         /// <summary>
         /// Fields:
         ///     _text
         ///     _value
+        ///     _row_index
+        ///     _col_index
         /// </summary>
         protected string _text = "";
         protected string _value = "";
-        private int _row_index;
-        private int _col_index;
+        private readonly int _row_index;
+        private readonly int _col_index;
 
         /// <summary>
-        /// Constructor for abstract SpreadsheetCell. Can NOT be instantiated.
+        /// Constructor for AbstractCell. Can NOT be instantiated.
         /// </summary>
         /// <param name="r_index"></param>
         /// <param name="c_index"></param>
-        public SpreadsheetCell(int r_index, int c_index)
+        public AbstractCell(int r_index, int c_index)
         {
-            _row_index = r_index; _col_index = c_index;
+            _row_index = r_index;
+            _col_index = c_index;
         }
 
         /// <summary>
@@ -44,7 +47,9 @@ namespace SpreadsheetEngine
                 if (value != _text)
                 {
                     _text = value;
-                    // FIRE PROPERTY CHANGED EVENT
+                    // FIRE PROPERTY CHANGED EVENT. This can be done more elegantly... 
+                    // C# 7 allows you to pass in the property directly as a PropertyChangedEventArgs. Look this up.
+                    OnPropertyChanged("Text");
                 }
             }
         }
@@ -59,36 +64,28 @@ namespace SpreadsheetEngine
             {
                 return _value;
             }
-            protected set     // only classes within this DLL can set; even classes that inherit from SpreadsheetCell outside of this DLL cannot
+            protected set     // only classes within this DLL can set; even classes that inherit from AbstractCell outside of this DLL cannot
             {
-
+                _value = value;
             }
         }
 
-        event PropertyChangedEventHandler INotifyPropertyChanged.PropertyChanged
+        public event PropertyChangedEventHandler PropertyChanged;       
+
+        protected void OnPropertyChanged(string prop)
         {
-            add
+            if (PropertyChanged != null)
             {
-                throw new NotImplementedException();
+                PropertyChanged(this, new PropertyChangedEventArgs(prop));
             }
-
-            remove
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        protected void OnPropertyChanged()
-        {
-
         }
     }
 
-    public class Spreadsheet
+    /// <summary>
+    /// Instanciable Cell
+    /// </summary>
+    public class Cell : AbstractCell
     {
-        public Spreadsheet()
-        {
-            
-        }
+        public Cell(int r_index, int c_index) : base(r_index, c_index) { }
     }
 }
