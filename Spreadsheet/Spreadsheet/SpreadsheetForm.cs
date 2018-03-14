@@ -17,8 +17,8 @@ namespace Spreadsheet
         /// </summary>
         static class Constants
         {
-            public const int numberOfColumns = 26;         // currently accepts (1 - inf)
-            public const int numberOfRows = 50;            // currently accepts (1 = inf)
+            public const int numberOfColumns = 26;         // currently accepts (1 to inf)
+            public const int numberOfRows = 50;            // currently accepts (1 to inf)
             public const int gridWidth = 800;
             public const int gridHeight = 500;
             public const int formWidth = gridWidth + 30;
@@ -51,11 +51,8 @@ namespace Spreadsheet
         /// <summary>
         /// Fields
         ///     _spreadsheet : Backend spreadsheet object
-        ///     _spreadsheet_binding: BindingSource
-        ///             - serves to respond to notifications from _spreadsheet; binds data in _spreadsheet to dataGridView1
         /// </summary>
         private SpreadsheetEngine.Spreadsheet _spreadsheet;
-        private BindingSource _spreadsheet_binding = new BindingSource();   // use to bind data in _spreadsheet to
 
         /// <summary>
         /// 
@@ -74,7 +71,6 @@ namespace Spreadsheet
         {
             _spreadsheet = new SpreadsheetEngine.Spreadsheet(Constants.numberOfRows, Constants.numberOfColumns);
             DelegateEventHandlers();
-            SetUpBinding();
             SetUpFormView();
             SetUpDataGridView();
         }
@@ -86,17 +82,7 @@ namespace Spreadsheet
         {
             dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
             dataGridView1.CellEndEdit += new DataGridViewCellEventHandler(dataGridView1_CellEndEdit);
-        }
-
-        /// <summary>
-        /// Sets up the "Reverse Event Handler" Mechanism. 
-        /// Because of this binding, the dataGridView will automatically respond to
-        /// events fired in _spreadsheet (due to changes).
-        /// </summary>
-        private void SetUpBinding()
-        {
-            // next up!!!!!!!!!!
-            this.dataGridView1.DataSource = this._spreadsheet_binding;
+            _spreadsheet.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
         }
 
         private void SetUpFormView()
@@ -134,13 +120,15 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// 
+        /// In "edit" mode, we need to display the cell's TEXT rather than its value, since the 
+        /// text is what is actually parsed and evaluated to obtain a value.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
-
+            DataGridView dgv = sender as DataGridView;
+            dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex).Text;
         }
 
         /// <summary>
@@ -150,9 +138,39 @@ namespace Spreadsheet
         /// <param name="e"></param>
         private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-            SpreadsheetEngine.Spreadsheet.CellEditArgs cea = new SpreadsheetEngine.Spreadsheet.CellEditArgs(
-                dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString(), e.RowIndex, e.ColumnIndex);
-            _spreadsheet.OnCellPropertyChanged(this, cea);    // pass in object that is raising the event & custom event args
+            try
+            {
+                SpreadsheetEngine.AbstractCell editedCell = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex);
+                DataGridView dgv = sender as DataGridView;
+                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+            }
+            catch (IndexOutOfRangeException)
+            {
+                MessageBox.Show(
+                    "You somehow accessed a cell that doesn't exist. Here is a warning.",
+                    "Index Out Of Range Error",
+                    MessageBoxButtons.OK
+                    );
+            }
+        }
+
+        /// <summary>
+        /// Responsible for handling the event 'PropertyChanged', which is fired
+        /// by the AbstractCell class in the backend. Respond by updating the view.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OnCellPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            SpreadsheetEngine.AbstractCell backendCell = sender as SpreadsheetEngine.AbstractCell;
+            switch (e.PropertyName)
+            {
+                case "Text":
+                    dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

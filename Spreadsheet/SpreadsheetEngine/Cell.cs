@@ -33,6 +33,28 @@ namespace SpreadsheetEngine
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public int RowIndex
+        {
+            get
+            {
+                return _row_index;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public int ColumnIndex
+        {
+            get
+            {
+                return _col_index;
+            }
+        }
+
+        /// <summary>
         /// Text Property
         ///     Setter first checks if value is equal to _text. If not, sets and fires PropertyChanged event.
         /// </summary>
@@ -46,9 +68,7 @@ namespace SpreadsheetEngine
             {
                 if (value != _text)
                 {
-                    _text = "testing";           //value;    change back afterwards!!!!
-                    // FIRE PROPERTY CHANGED EVENT. This can be done more elegantly... 
-                    // C# 7 allows you to pass in the property directly as a PropertyChangedEventArgs. Look this up.
+                    _text = value;
                     OnPropertyChanged("Text");
                 }
             }
@@ -64,7 +84,7 @@ namespace SpreadsheetEngine
             {
                 return _value;
             }
-            protected set     // only classes within this DLL can set; even classes that inherit from AbstractCell outside of this DLL cannot
+            internal set     // only classes within this DLL can set; even classes that inherit from AbstractCell outside of this DLL cannot
             {
                 _value = value;
             }
@@ -72,12 +92,15 @@ namespace SpreadsheetEngine
 
         public event PropertyChangedEventHandler PropertyChanged;       
 
+        /// <summary>
+        /// If PropertyChanged isn't null, then we invoke (fire) the event. This additional check makes
+        /// sure that anyone dealing with these AbstractCells have a PropertyChangedEventHandler to handle 
+        /// the event appropriately.
+        /// </summary>
+        /// <param name="prop"></param>
         protected void OnPropertyChanged(string prop)
         {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(prop));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
         }
     }
 
