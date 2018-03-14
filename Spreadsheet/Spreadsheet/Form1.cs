@@ -49,23 +49,57 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// Backend spreadsheet object.
+        /// Fields
+        ///     _spreadsheet : Backend spreadsheet object
+        ///     _spreadsheet_binding: BindingSource
+        ///             - serves to respond to notifications from _spreadsheet; binds data in _spreadsheet to dataGridView1
         /// </summary>
         private SpreadsheetEngine.Spreadsheet _spreadsheet;
+        private BindingSource _spreadsheet_binding = new BindingSource();   // use to bind data in _spreadsheet to
 
+        /// <summary>
+        /// 
+        /// </summary>
         public SpreadsheetForm()
         {
             InitializeComponent();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Form1_Load(object sender, EventArgs e)
         {
             _spreadsheet = new SpreadsheetEngine.Spreadsheet(Constants.numberOfRows, Constants.numberOfColumns);
+            DelegateEventHandlers();
+            SetUpBinding();
             SetUpFormView();
             SetUpDataGridView();
         }
 
-        public void SetUpFormView()
+        /// <summary>
+        /// Assign event handlers to specific events.
+        /// </summary>
+        private void DelegateEventHandlers()
+        {
+            dataGridView1.CellBeginEdit += new DataGridViewCellCancelEventHandler(dataGridView1_CellBeginEdit);
+            dataGridView1.CellEndEdit += new DataGridViewCellEventHandler(dataGridView1_CellEndEdit);
+        }
+
+        /// <summary>
+        /// Sets up the "Reverse Event Handler" Mechanism. 
+        /// Because of this binding, the dataGridView will automatically respond to
+        /// events fired in _spreadsheet (due to changes).
+        /// </summary>
+        private void SetUpBinding()
+        {
+            // next up!!!!!!!!!!
+            this.dataGridView1.DataSource = this._spreadsheet_binding;
+        }
+
+        private void SetUpFormView()
         {
             this.Size = new System.Drawing.Size(Constants.formWidth, Constants.formHeight);
         }
@@ -99,19 +133,26 @@ namespace Spreadsheet
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
-            //_spreadsheet.CellPropertyChanged += SOMETHING... to invoke the event
-            // The event args will be:
-            // new string value: dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()
-            // row: e.RowIndex
-            // col: e.ColumnIndex          (an integer)
-            // Basically what we want to do is: dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = Whatever the event returns in the backend!!
+            SpreadsheetEngine.Spreadsheet.CellEditArgs cea = new SpreadsheetEngine.Spreadsheet.CellEditArgs(
+                dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString(), e.RowIndex, e.ColumnIndex);
+            _spreadsheet.OnCellPropertyChanged(this, cea);    // pass in object that is raising the event & custom event args
         }
     }
 }

@@ -46,7 +46,7 @@ namespace SpreadsheetEngine
             {
                 if (value != _text)
                 {
-                    _text = value;
+                    _text = "testing";           //value;    change back afterwards!!!!
                     // FIRE PROPERTY CHANGED EVENT. This can be done more elegantly... 
                     // C# 7 allows you to pass in the property directly as a PropertyChangedEventArgs. Look this up.
                     OnPropertyChanged("Text");
