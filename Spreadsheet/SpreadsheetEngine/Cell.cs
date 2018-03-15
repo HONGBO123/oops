@@ -100,6 +100,8 @@ namespace SpreadsheetEngine
         /// <param name="prop"></param>
         protected void OnPropertyChanged(string prop)
         {
+            //Console.Write("text:" + _text);
+            //Console.WriteLine("value:" + _value);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
         }
     }

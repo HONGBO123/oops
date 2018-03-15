@@ -14,7 +14,8 @@ namespace SpreadsheetEngine
         ///     _spreadsheet
         ///     _row_dim
         ///     _col_dim
-        ///     CellEditEventHandler (i.e. the handler and the event)
+        ///     _column_header_alphabet
+        ///     PropertyChanged Event
         /// </summary>
         private Cell[,] _spreadsheet;
         private readonly int _row_dim = 0;
@@ -112,17 +113,23 @@ namespace SpreadsheetEngine
         public void OnCellPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             AbstractCell c = sender as AbstractCell;
-            //Console.WriteLine(c.RowIndex.ToString());
-            //Console.WriteLine(c.ColumnIndex.ToString());
             switch (e.PropertyName)
             {
                 case "Text":
-                    DetermineCellValue(ref c);
+                    try
+                    {
+                        DetermineCellValue(ref c);
+                        PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
+                    }
+                    catch (ArgumentException)
+                    {
+                        throw;
+                    }
                     break;
                 default:
                     break;
             }
-            PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs(e.PropertyName));    // Pass along event to whoever uses this class
+
         }
 
         /// <summary>
@@ -141,7 +148,14 @@ namespace SpreadsheetEngine
             {
                 if (cell.Text.Length > 1)
                 {
-                    EvaluateFormula(ref cell);
+                    try
+                    {
+                        EvaluateFormula(ref cell);
+                    }
+                    catch
+                    {
+                        throw;
+                    }
                 }
                 else
                 {
