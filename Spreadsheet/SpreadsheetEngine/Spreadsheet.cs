@@ -14,7 +14,7 @@ namespace SpreadsheetEngine
         ///     _spreadsheet
         ///     _row_dim
         ///     _col_dim
-        ///     _column_header_alphabet
+        ///     _column_header_alphabet: should be in this DLL because determining a cell reference's indices is dependent upon col headers
         ///     PropertyChanged Event
         /// </summary>
         private Cell[,] _spreadsheet;
@@ -22,9 +22,11 @@ namespace SpreadsheetEngine
         private readonly int _col_dim = 1;
         private static string _column_header_alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z";
         public event PropertyChangedEventHandler PropertyChanged;
+        private bool _error_occurred = false;
+        private string _error_message = "";
 
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
         /// <param name="num_rows"></param>
         /// <param name="num_cols"></param>
@@ -62,6 +64,26 @@ namespace SpreadsheetEngine
                 columnHeaders.SetValue(header, i);       // Set Header
             }
             return columnHeaders;
+        }
+
+        public bool Error
+        {
+            get
+            {
+                return _error_occurred;
+            }
+            set
+            {
+                _error_occurred = value;
+            }
+        }
+
+        public string ErrorMessage
+        {
+            get
+            {
+                return _error_message;
+            }
         }
 
         /// <summary>
@@ -112,6 +134,7 @@ namespace SpreadsheetEngine
         /// <param name="e"></param>
         public void OnCellPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            //_error_occurred = false;           // in the beginning, no error has occurred
             AbstractCell c = sender as AbstractCell;
             switch (e.PropertyName)
             {
@@ -121,9 +144,10 @@ namespace SpreadsheetEngine
                         DetermineCellValue(ref c);
                         PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
                     }
-                    catch (ArgumentException)
+                    catch (Exception ex)
                     {
-                        throw;
+                        _error_occurred = true;
+                        _error_message = ex.Message;
                     }
                     break;
                 default:
@@ -154,12 +178,12 @@ namespace SpreadsheetEngine
                     }
                     catch
                     {
-                        throw;
+                        throw;      // propagate error upwards
                     }
                 }
                 else
                 {
-                    throw new ArgumentException(@"'=' is not a valid formula.");
+                    throw new ArgumentException(_error_message = @"'=' is not a valid formula.");
                 }
             }
             else
@@ -169,7 +193,8 @@ namespace SpreadsheetEngine
         }
 
         /// <summary>
-        /// 
+        /// The passed in cell object's Text field begins with an '=', indicating it is
+        /// a formula. This function evaluats that formula.
         /// </summary>
         /// <param name="cell"></param>
         private void EvaluateFormula(ref AbstractCell cell)
@@ -185,9 +210,8 @@ namespace SpreadsheetEngine
             }
             catch
             {
-                throw;     // pass error further up to be handled by SpreadsheetForm
+                throw;       // propagate error up
             }
-
         }
 
         /// <summary>

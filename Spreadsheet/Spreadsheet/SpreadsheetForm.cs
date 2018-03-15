@@ -33,10 +33,9 @@ namespace Spreadsheet
         ///     _spreadsheet : Backend spreadsheet object
         /// </summary>
         private SpreadsheetEngine.Spreadsheet _spreadsheet;
-        private Button _demo_button;
 
         /// <summary>
-        /// 
+        /// Constructor
         /// </summary>
         public SpreadsheetForm()
         {
@@ -44,7 +43,7 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// 
+        /// What occurs when the form loads.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -57,7 +56,7 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// 
+        /// Initialize any internal objects.
         /// </summary>
         private void ObjectInitialization()
         {
@@ -73,11 +72,10 @@ namespace Spreadsheet
             dataGridView1.CellEndEdit += new DataGridViewCellEventHandler(dataGridView1_CellEndEdit);
             _spreadsheet.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
             button1.Click += new EventHandler(button1_Click);
-            //_demo_button.Click +=
         }
 
         /// <summary>
-        /// 
+        /// Set up the form properties.
         /// </summary>
         private void SetUpFormView()
         {
@@ -119,7 +117,8 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// 
+        /// Demo: randomly assign 50 cells to a test string; set column B cells to "This is cell B#";
+        /// and set column A cells to "=B#".
         /// </summary>
         private void Demo()
         {
@@ -156,7 +155,6 @@ namespace Spreadsheet
         {
             DataGridView dgv = sender as DataGridView;
             dataGridView1.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex).Text;
-            //Console.WriteLine("displaying text: " + _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex).Text);
         }
 
         /// <summary>
@@ -169,14 +167,14 @@ namespace Spreadsheet
             try
             {
                 DataGridView dgv = sender as DataGridView;
-                SpreadsheetEngine.AbstractCell editedCell = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex);     // grab reference to backend cell being edited
-                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();                    // update reference's text
-                dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = editedCell.Value;    // display the value rather than the text.
+                SpreadsheetEngine.AbstractCell editedCell = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex);    // grab reference to backend cell being edited
+                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();                   // update reference's text
+                dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = editedCell.Value;                             // display the value rather than the text.
             }
-            catch (IndexOutOfRangeException)
+            catch (IndexOutOfRangeException ex)
             {
                 MessageBox.Show(
-                    "You attempted to access a cell that's out of bounds. Here is a warning. Don't do it again please.",
+                    ex.Message,
                     "Index Out Of Range Error",
                     MessageBoxButtons.OK
                     );
@@ -195,17 +193,15 @@ namespace Spreadsheet
             switch (e.PropertyName)
             {
                 case "Value":
-                    try
-                    {
-                        dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
-                    }
-                    catch (ArgumentException ae)
+                    dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
+                    if (_spreadsheet.Error)
                     {
                         MessageBox.Show(
-                            ae.Message,
+                            _spreadsheet.ErrorMessage,
                             "Invalid Formula",
                             MessageBoxButtons.OK
                         );
+                        _spreadsheet.Error = false;       // have to do this workaround error propagation because mixing exceptions and event handlers is highly frowned upon
                     }
                     break;
                 default:

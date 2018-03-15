@@ -33,7 +33,7 @@ namespace SpreadsheetEngine
         }
 
         /// <summary>
-        /// 
+        /// Return row index (not set ability)
         /// </summary>
         public int RowIndex
         {
@@ -44,7 +44,7 @@ namespace SpreadsheetEngine
         }
 
         /// <summary>
-        /// 
+        /// Return column index (no set ability)
         /// </summary>
         public int ColumnIndex
         {
