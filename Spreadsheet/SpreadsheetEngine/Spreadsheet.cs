@@ -1,4 +1,12 @@
-﻿using System;
+﻿/*
+ * Name: Kyler Little
+ * ID: 11472421
+ */
+
+
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +24,8 @@ namespace SpreadsheetEngine
         ///     _col_dim
         ///     _column_header_alphabet: should be in this DLL because determining a cell reference's indices is dependent upon col headers
         ///     PropertyChanged Event
+        ///     _error_occurred
+        ///     _error_message
         /// </summary>
         private Cell[,] _spreadsheet;
         private readonly int _row_dim = 0;
@@ -66,6 +76,11 @@ namespace SpreadsheetEngine
             return columnHeaders;
         }
 
+        /// <summary>
+        /// Boolean Property. If error occurred in the event handler, we must do this workaround solution
+        /// because exceptions and events do NOT mix well (it's highly recommended not to mix them).
+        /// The user of this class must ensure Error is reset to "false" if the error was handled.
+        /// </summary>
         public bool Error
         {
             get
@@ -78,11 +93,18 @@ namespace SpreadsheetEngine
             }
         }
 
+        /// <summary>
+        /// Error Message Property. Allows user to view what the problem was.
+        /// </summary>
         public string ErrorMessage
         {
             get
             {
                 return _error_message;
+            }
+            set
+            {
+                _error_message = value;
             }
         }
 

@@ -1,4 +1,18 @@
-﻿using System;
+﻿/*
+ * Assignment #5: Spreadsheet Prototype
+ * Author: Kyler Little
+ * ID: 11472421
+ * Last Modified: 3/15/2018 2:20 PM
+ * 
+ * Notes: Currently doesn't support "cascading changes." Would like to wait on adding this functionality until
+ * we cover how to handle expressions. Also, need a break from coding to clear the head.
+ */
+
+
+
+
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -194,14 +208,15 @@ namespace Spreadsheet
             {
                 case "Value":
                     dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
-                    if (_spreadsheet.Error)
+                    if (_spreadsheet.Error)      // if error occurred
                     {
                         MessageBox.Show(
                             _spreadsheet.ErrorMessage,
                             "Invalid Formula",
                             MessageBoxButtons.OK
                         );
-                        _spreadsheet.Error = false;       // have to do this workaround error propagation because mixing exceptions and event handlers is highly frowned upon
+                        _spreadsheet.Error = false;
+                        _spreadsheet.ErrorMessage = "";
                     }
                     break;
                 default:
