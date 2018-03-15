@@ -26,29 +26,6 @@ namespace Spreadsheet
         }
 
         /// <summary>
-        /// This function automatically determines the column headers (based on Constants.numberOfColumns) and 
-        /// returns the column headers as an array of strings.
-        /// If you'd like to have a special character in the alphabet, add this to the alphabet string below (separated by a delimiter).
-        /// </summary>
-        /// <returns></returns>
-        private string[] ColumnHeaders()
-        {
-            string[] alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z".Split(new char[] { ',' });
-            string[] columnHeaders = new string[Constants.numberOfColumns];
-            for (int i = 0; i < Constants.numberOfColumns; ++i)
-            {
-                string header = "";
-                // Loop sets current header; if numberOfColumns > 26, we begin doubling letters. If > 52, triple. And so on.
-                for (int j = 0; j <= i / alphabet.Length; j++)        
-                {
-                    header += alphabet[i % alphabet.Length];        // add current letter in alphabet (i % alphabet.Length) to header.
-                }
-                columnHeaders.SetValue(header, i);       // Set Header
-            }
-            return columnHeaders;
-        }
-
-        /// <summary>
         /// Fields
         ///     _spreadsheet : Backend spreadsheet object
         /// </summary>
@@ -101,7 +78,7 @@ namespace Spreadsheet
             this.dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             this.dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
                 // Column Headers
-            foreach (string colHeader in ColumnHeaders())
+            foreach (string colHeader in SpreadsheetEngine.Spreadsheet.ColumnHeaders(Constants.numberOfColumns))
             {
                 this.dataGridView1.Columns.Add(colHeader, colHeader);       // add as column header
             }
@@ -147,7 +124,7 @@ namespace Spreadsheet
             catch (IndexOutOfRangeException)
             {
                 MessageBox.Show(
-                    "You somehow accessed a cell that doesn't exist. Here is a warning.",
+                    "You attempted to access a cell that's out of bounds. Here is a warning. Don't do it again please.",
                     "Index Out Of Range Error",
                     MessageBoxButtons.OK
                     );
@@ -166,7 +143,18 @@ namespace Spreadsheet
             switch (e.PropertyName)
             {
                 case "Text":
-                    dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
+                    try
+                    {
+                        dataGridView1.Rows[backendCell.RowIndex].Cells[backendCell.ColumnIndex].Value = backendCell.Value;     // display value
+                    }
+                    catch (ArgumentException ae)
+                    {
+                        MessageBox.Show(
+                            ae.Message,
+                            "Invalid Formula",
+                            MessageBoxButtons.OK
+                    );
+                    }
                     break;
                 default:
                     break;
