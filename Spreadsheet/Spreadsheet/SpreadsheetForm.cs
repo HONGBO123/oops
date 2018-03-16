@@ -86,6 +86,7 @@ namespace Spreadsheet
             dataGridView1.CellEndEdit += new DataGridViewCellEventHandler(dataGridView1_CellEndEdit);
             _spreadsheet.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
             button1.Click += new EventHandler(button1_Click);
+            button1.DoubleClick += new EventHandler(button1_Click);
         }
 
         /// <summary>
@@ -182,7 +183,7 @@ namespace Spreadsheet
             {
                 DataGridView dgv = sender as DataGridView;
                 SpreadsheetEngine.AbstractCell editedCell = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex);    // grab reference to backend cell being edited
-                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();                   // update reference's text
+                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();             // update reference's text
                 dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = editedCell.Value;                             // display the value rather than the text.
             }
             catch (IndexOutOfRangeException ex)

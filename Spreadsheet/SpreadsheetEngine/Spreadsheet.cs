@@ -210,6 +210,7 @@ namespace SpreadsheetEngine
             }
             else
             {
+                Console.WriteLine("modified cell's text: " + cell.Text);
                 cell.Value = cell.Text;
             }
         }
