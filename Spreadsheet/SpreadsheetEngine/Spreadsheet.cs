@@ -20,7 +20,7 @@ namespace SpreadsheetEngine
         /// <summary>
         /// Fields:
         ///     _spreadsheet
-        ///     _dependencies: key : cell reference, value : cell references that the key is dependent on
+        ///     _dependencies: key : cell name, value : cell names that the key is dependent on
         ///     _row_dim
         ///     _col_dim
         ///     _column_header_alphabet: should be in this DLL because determining a cell reference's indices is dependent upon col headers
@@ -29,7 +29,7 @@ namespace SpreadsheetEngine
         ///     _error_message
         /// </summary>
         private Cell[,] _spreadsheet;
-        private Dictionary<CellReference, HashSet<CellReference>> _dependencies;
+        private Dictionary<string, HashSet<string>> _dependencies;
         private readonly int _row_dim = 0;
         private readonly int _col_dim = 1;
         private static string _column_header_alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z";
@@ -235,9 +235,6 @@ namespace SpreadsheetEngine
 
             try
             {
-                _dependencies.Add(new CellReference(
-                    () => cell, val => { cell = (AbstractCell) val }
-                    ))
                 int[] indices = ReferenceToIndices(cell.Text.Substring(1));      // pass in full string BUT '=' at start
                 cell.Value = GetCell(indices[0], indices[1]).Value;
             }

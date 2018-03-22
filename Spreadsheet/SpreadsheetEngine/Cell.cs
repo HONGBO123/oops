@@ -132,23 +132,4 @@ namespace SpreadsheetEngine
     {
         public Cell(int r_index, int c_index) : base(r_index, c_index) { }
     }
-
-    sealed class CellReference
-    {
-        public Func<AbstractCell> Get
-        {
-            get;
-            private set;
-        }
-        public Action<AbstractCell> Set
-        {
-            get;
-            private set;
-        }
-        public CellReference(Func<AbstractCell> getter, Action<AbstractCell> setter)
-        {
-            Get = getter;
-            Set = setter;
-        }
-    }
 }

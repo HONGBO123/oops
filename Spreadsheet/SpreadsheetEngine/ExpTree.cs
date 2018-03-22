@@ -13,9 +13,16 @@ namespace SpreadsheetEngine
 
     internal class ValueNode : TreeNode
     {
+        private int _value;
+
+        public ValueNode(int value)
+        {
+            _value = value;
+        }
+
         public override double Eval()
         {
-            throw new NotImplementedException();
+            return _value;
         }
     }
 
@@ -26,14 +33,15 @@ namespace SpreadsheetEngine
 
     internal abstract class BinaryOperatorNode : OperatorNode
     {
-        /// <summary>
-        /// Fields:
-        ///     left
-        ///     right
-        ///     Binary Operator Nodes should have two children!
-        /// </summary>
+        /*
+         * Fields (note that binary operator must have two children)
+         */
         public TreeNode left;
         public TreeNode right;
+
+        /// <summary>
+        /// 
+        /// </summary>
         public BinaryOperatorNode()
         {
             left = null;
@@ -76,9 +84,52 @@ namespace SpreadsheetEngine
 
     internal class CellReferenceNode : TreeNode
     {
+        /*
+         * Fields
+         */
+        private string _var_name;
+        private double? _val;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="var_name"></param>
+        /// <param name="val"></param>
+        public CellReferenceNode(string var_name)
+        {
+            _var_name = var_name;
+        }
+
+        public string Name
+        {
+            get
+            {
+                return _var_name;
+            }
+        }
+
+        public double Value
+        {
+            set
+            {
+                _val = value;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public override double Eval()
         {
-            throw new NotImplementedException();
+            if (_val.HasValue)
+            {
+                return _val.Value;
+            }
+            else
+            {
+                throw new NullReferenceException(String.Format("Variable {0}'s value is unknown", _var_name));
+            }
         }
     }
 
@@ -102,28 +153,125 @@ namespace SpreadsheetEngine
         }
     }
 
-    class ExpTree
+    internal abstract class TreeNodeFactory
     {
-        TreeNode _root = null;
-        Dictionary<string, double> _variable_dict;
+        public abstract TreeNode FactoryMethod(string expression);
+    }
+
+    internal class ConcreteTreeNodeFactory : TreeNodeFactory
+    {
+        public override TreeNode FactoryMethod(string expression)
+        {
+            OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
+            OperatorNode @operator = opNodeFactory.FactoryMethod(expression[0]);
+            if (@operator != null)
+            {
+                return @operator;
+            }
+            else
+            {
+                bool success = Int32.TryParse(expression, out int result);
+                if (success)
+                {
+                    return new ValueNode(result);
+                }
+                else
+                {
+                    return new CellReferenceNode(expression);
+                }
+            }
+        }
+    }
+
+    public class ExpTree
+    {
+        /*
+         * Fields
+         */
+        private TreeNode _root = null;
+        private Dictionary<string, CellReferenceNode> _variable_dict;
 
         /// <summary>
         /// Construct the expression tree!
         /// </summary>
         /// <param name="expression"></param>
-        ExpTree(string expression)
+        public ExpTree(string expression)
         {
-
+            this._variable_dict = new Dictionary<string, CellReferenceNode>();
+            _root = ConstructTree(expression);
         }
 
-        void SetVar(string varName, double varValue)
+        private TreeNode ConstructTree(string expression)
         {
-
+            for (int i = expression.Length - 1; i >= 0; i--)
+            {
+                OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
+                OperatorNode @operator = opNodeFactory.FactoryMethod(expression[i]);
+                if (@operator != null)    // then @operator is an operator
+                {
+                    if (@operator is BinaryOperatorNode)
+                    {
+                        BinaryOperatorNode binaryOperator = @operator as BinaryOperatorNode;
+                        binaryOperator.left = ConstructTree(expression.Substring(0, i));
+                        binaryOperator.right = ConstructTree(expression.Substring(i + 1));
+                        return binaryOperator;
+                    }
+                }
+            }
+            // If we traversed thru "expression" without node creation, then there are no operators remaining
+            // in the expression. Thus, the expression is either a CellReferenceNode or ValueNode.
+            TreeNodeFactory treeNodeFactory = new ConcreteTreeNodeFactory();
+            TreeNode treeNode = treeNodeFactory.FactoryMethod(expression);
+            if (treeNode is CellReferenceNode)
+            {
+                CellReferenceNode cellReferenceNode = treeNode as CellReferenceNode;
+                _variable_dict.Add(cellReferenceNode.Name, cellReferenceNode);
+            }
+            return treeNode;
         }
 
-        double Eval()
+        private string InfixToPostfix(string expression)
         {
-            return _root.Eval();
+            Dictionary<char, int> precedenceDict = new Dictionary<char, int>
+            {
+                ['*'] = 3,
+                ['/'] = 3,
+                ['+'] = 2,
+                ['-'] = 2,
+                ['('] = 1
+            };
+            List<string> postFixList = new List<string>();
+            foreach (string tok in expression.Split(new char[] { ' ', '\0'}))
+            {
+                Console.WriteLine(tok);
+            }
+            return string.Join(" ", postFixList);
+        }
+
+        /// <summary>
+        /// Add variable to internal dictionary to keep track of cell references and their values
+        /// </summary>
+        /// <param name="varName"></param>
+        /// <param name="varValue"></param>
+        public void SetVar(string varName, double varValue)
+        {
+            _variable_dict[varName].Value = varValue;
+        }
+
+        /// <summary>
+        /// Recursively evaluate the expression tree from the root.
+        /// </summary>
+        /// <returns></returns>
+        public double Eval()
+        {
+            try
+            {
+                return _root.Eval();
+            }
+            catch (NullReferenceException)    // thrown if a variable (cell reference node) has no value
+            {
+                throw;
+            }
         }
     }
 }
