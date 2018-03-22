@@ -189,7 +189,7 @@ namespace SpreadsheetEngine
          * Fields
          */
         private TreeNode _root = null;
-        private Dictionary<string, CellReferenceNode> _variable_dict;
+        private Dictionary<string, HashSet<CellReferenceNode>> _variable_dict;
 
         /// <summary>
         /// Construct the expression tree!
@@ -197,12 +197,18 @@ namespace SpreadsheetEngine
         /// <param name="expression"></param>
         public ExpTree(string expression)
         {
-            this._variable_dict = new Dictionary<string, CellReferenceNode>();
+            this._variable_dict = new Dictionary<string, HashSet<CellReferenceNode>>();
             _root = ConstructTree(expression);
         }
 
         private TreeNode ConstructTree(string expression)
         {
+            if (expression == string.Empty)   // base case
+            {
+                return null;
+            }
+
+            expression = expression.Replace(" ", String.Empty);    // remove any whitespaces (needs to be done for each recursion)
             for (int i = expression.Length - 1; i >= 0; i--)
             {
                 OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
@@ -212,12 +218,18 @@ namespace SpreadsheetEngine
                     if (@operator is BinaryOperatorNode)
                     {
                         BinaryOperatorNode binaryOperator = @operator as BinaryOperatorNode;
-                        binaryOperator.left = ConstructTree(expression.Substring(0, i));
-                        binaryOperator.right = ConstructTree(expression.Substring(i + 1));
+                        TreeNode left = ConstructTree(expression.Substring(0, i)), right = ConstructTree(expression.Substring(i + 1));
+                        if (left is null || right is null)        // reference check
+                        {
+                            throw new ArgumentNullException("Operator is binary and needs two arguments.");
+                        }
+                        binaryOperator.left = left;
+                        binaryOperator.right = right;
                         return binaryOperator;
                     }
                 }
             }
+
             // If we traversed thru "expression" without node creation, then there are no operators remaining
             // in the expression. Thus, the expression is either a CellReferenceNode or ValueNode.
             TreeNodeFactory treeNodeFactory = new ConcreteTreeNodeFactory();
@@ -225,7 +237,11 @@ namespace SpreadsheetEngine
             if (treeNode is CellReferenceNode)
             {
                 CellReferenceNode cellReferenceNode = treeNode as CellReferenceNode;
-                _variable_dict.Add(cellReferenceNode.Name, cellReferenceNode);
+                if (!_variable_dict.ContainsKey(cellReferenceNode.Name))      // variable not currently in dictionary
+                {
+                    _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
+                }
+                _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
             }
             return treeNode;
         }
@@ -255,7 +271,17 @@ namespace SpreadsheetEngine
         /// <param name="varValue"></param>
         public void SetVar(string varName, double varValue)
         {
-            _variable_dict[varName].Value = varValue;
+            if (_variable_dict.ContainsKey(varName))
+            {
+                foreach (CellReferenceNode node in _variable_dict[varName])    // for each identical cell reference, set its value
+                {
+                    node.Value = varValue;
+                }
+            }
+            else
+            {
+                throw new KeyNotFoundException(String.Format("{0} is not a variable in the expression", varName));
+            }
         }
 
         /// <summary>
