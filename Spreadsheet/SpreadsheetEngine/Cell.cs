@@ -19,11 +19,13 @@ namespace SpreadsheetEngine
         /// Fields:
         ///     _text
         ///     _value
+        ///     _name
         ///     _row_index
         ///     _col_index
         /// </summary>
         protected string _text = "";
         protected string _value = "";
+        private readonly string _name = "";
         private readonly int _row_index;
         private readonly int _col_index;
 
@@ -96,6 +98,17 @@ namespace SpreadsheetEngine
             }
         }
 
+        /// <summary>
+        /// Name property-- ex: "A5"
+        /// </summary>
+        public string Name
+        {
+            get
+            {
+                return _name;
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;       
 
         /// <summary>
@@ -118,5 +131,24 @@ namespace SpreadsheetEngine
     public class Cell : AbstractCell
     {
         public Cell(int r_index, int c_index) : base(r_index, c_index) { }
+    }
+
+    sealed class CellReference
+    {
+        public Func<AbstractCell> Get
+        {
+            get;
+            private set;
+        }
+        public Action<AbstractCell> Set
+        {
+            get;
+            private set;
+        }
+        public CellReference(Func<AbstractCell> getter, Action<AbstractCell> setter)
+        {
+            Get = getter;
+            Set = setter;
+        }
     }
 }
