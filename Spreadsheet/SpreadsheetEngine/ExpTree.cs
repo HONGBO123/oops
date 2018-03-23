@@ -1,4 +1,11 @@
-﻿using System;
+﻿/*
+ * Name: Kyler Little
+ * ID: 11472421
+ */
+
+
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,7 +47,7 @@ namespace SpreadsheetEngine
         public TreeNode right;
 
         /// <summary>
-        /// 
+        /// Initially, the "left" and "right" references are made null.
         /// </summary>
         public BinaryOperatorNode()
         {
@@ -91,7 +98,7 @@ namespace SpreadsheetEngine
         private double? _val;
 
         /// <summary>
-        /// 
+        /// Variables only need names when constructed. Their values can be determined later.
         /// </summary>
         /// <param name="var_name"></param>
         /// <param name="val"></param>
@@ -100,6 +107,9 @@ namespace SpreadsheetEngine
             _var_name = var_name;
         }
 
+        /// <summary>
+        /// Name property
+        /// </summary>
         public string Name
         {
             get
@@ -108,6 +118,9 @@ namespace SpreadsheetEngine
             }
         }
 
+        /// <summary>
+        /// Value property
+        /// </summary>
         public double Value
         {
             set
@@ -117,7 +130,7 @@ namespace SpreadsheetEngine
         }
 
         /// <summary>
-        /// 
+        /// If Value has been set, we can evaluate; otherwise, a NullReferenceException is thrown.
         /// </summary>
         /// <returns></returns>
         public override double Eval()
@@ -138,6 +151,11 @@ namespace SpreadsheetEngine
         public abstract OperatorNode FactoryMethod(char op);
     }
 
+    /// <summary>
+    /// Concrete Factory for OperationNodes
+    /// Given an input character (the operator), this factory's "FactoryMethod"
+    /// method will return the appropriate node.
+    /// </summary>
     internal class ConcreteOpNodeFactory : OpNodeFactory
     {
         public override OperatorNode FactoryMethod(char op)
@@ -158,6 +176,12 @@ namespace SpreadsheetEngine
         public abstract TreeNode FactoryMethod(string expression);
     }
 
+    /// <summary>
+    /// Concrete Factory for TreeNodes.
+    /// Given an input expression, if it's not an operator, then it is assumed
+    /// to be a valuenode or cellreferencenode. If conversion to int fails, it automatically
+    /// becomes a cellreferencenode.
+    /// </summary>
     internal class ConcreteTreeNodeFactory : TreeNodeFactory
     {
         public override TreeNode FactoryMethod(string expression)
@@ -189,26 +213,35 @@ namespace SpreadsheetEngine
          * Fields
          */
         private TreeNode _root = null;
-        private Dictionary<string, HashSet<CellReferenceNode>> _variable_dict;
+        private Dictionary<string, HashSet<CellReferenceNode>> _variable_dict;   // HashSet allows for indentical cell references in the same expression
 
         /// <summary>
-        /// Construct the expression tree!
+        /// Construct the expression tree and initialize dictionary
         /// </summary>
         /// <param name="expression"></param>
         public ExpTree(string expression)
         {
+            expression = expression.Replace(" ", String.Empty);    // Remove spaces from expression
             this._variable_dict = new Dictionary<string, HashSet<CellReferenceNode>>();
             _root = ConstructTree(expression);
         }
 
+        /// <summary>
+        /// Recursively construct the expression tree. Determine node type by utilizing 
+        /// the factory method. In this way, we don't have to directly determine the type of TreeNode
+        /// in this method.
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         private TreeNode ConstructTree(string expression)
         {
             if (expression == string.Empty)   // base case
             {
                 return null;
             }
-
-            expression = expression.Replace(" ", String.Empty);    // remove any whitespaces (needs to be done for each recursion)
+            
+            // Recursive Step: Add children only if token is an operator.
+            // Currently, we'll ignore order of operations and assume the higher precedence operators are at the front of the string
             for (int i = expression.Length - 1; i >= 0; i--)
             {
                 OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
@@ -225,12 +258,12 @@ namespace SpreadsheetEngine
                         }
                         binaryOperator.left = left;
                         binaryOperator.right = right;
-                        return binaryOperator;
+                        return binaryOperator;    // return the reference
                     }
                 }
             }
 
-            // If we traversed thru "expression" without node creation, then there are no operators remaining
+            // If we traversed through "expression" without node creation, then there are no operators remaining
             // in the expression. Thus, the expression is either a CellReferenceNode or ValueNode.
             TreeNodeFactory treeNodeFactory = new ConcreteTreeNodeFactory();
             TreeNode treeNode = treeNodeFactory.FactoryMethod(expression);
@@ -244,24 +277,6 @@ namespace SpreadsheetEngine
                 _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
             }
             return treeNode;
-        }
-
-        private string InfixToPostfix(string expression)
-        {
-            Dictionary<char, int> precedenceDict = new Dictionary<char, int>
-            {
-                ['*'] = 3,
-                ['/'] = 3,
-                ['+'] = 2,
-                ['-'] = 2,
-                ['('] = 1
-            };
-            List<string> postFixList = new List<string>();
-            foreach (string tok in expression.Split(new char[] { ' ', '\0'}))
-            {
-                Console.WriteLine(tok);
-            }
-            return string.Join(" ", postFixList);
         }
 
         /// <summary>
@@ -286,6 +301,7 @@ namespace SpreadsheetEngine
 
         /// <summary>
         /// Recursively evaluate the expression tree from the root.
+        /// Throws a null reference exception if value's (i.e. a variable's) value is unknown
         /// </summary>
         /// <returns></returns>
         public double Eval()
