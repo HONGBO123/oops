@@ -279,6 +279,11 @@ namespace SpreadsheetEngine
             return treeNode;
         }
 
+        private string InfixToPostfix(string expression)
+        {
+            return "";
+        }
+
         /// <summary>
         /// Add variable to internal dictionary to keep track of cell references and their values
         /// </summary>

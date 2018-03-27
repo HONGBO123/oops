@@ -13,13 +13,36 @@ using System.Text;
 using System.Threading.Tasks;
 using SpreadsheetEngine;
 
+
+
+using System.Text.RegularExpressions;
+
 namespace TestExpTree
 {
     class TestExpTree
     {
         static void Main(string[] args)
         {
-            RunExpTreeTester();
+            //RunExpTreeTester();
+            // playing around with regex
+            // REGEX Notes:
+            // [] matches just single char in that group
+            // () matches full expression
+            // * means matches previous thing 0 or more times; + means one or more
+            // ? means 0 or more
+            // use '\' for special characters to escape it
+
+            // In pattern, first part matches cell number; second part matches a signed decimal number; third part matches operator
+            string @pattern = @"[A-Za-z]+[0-9]+|-?\d*\.?\d*|[\+=\*/\(\)]";
+            //string @pattern = @"(-?\d*\.?\d*)";
+            Regex r = new Regex(@pattern);
+            string test_string = "(A5+7)*-34.78-hello";
+            foreach (Match match in r.Matches(test_string))
+            {
+                Console.WriteLine(match);
+            }
+
+
         }
 
         static void PrintMenu(string current_expression)
