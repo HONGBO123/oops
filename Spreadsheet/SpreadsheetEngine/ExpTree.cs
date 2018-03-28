@@ -21,16 +21,24 @@ namespace SpreadsheetEngine
 
     internal class ValueNode : TreeNode
     {
-        private int _value;
+        private int? _int;
+        private double? _double;
 
         public ValueNode(int value)
         {
-            _value = value;
+            _int = value;
+        }
+
+        public ValueNode(double value)
+        {
+            _double = value;
         }
 
         public override double Eval()
         {
-            return _value;
+            // Return the value that was set in the constructor
+            if (_int.HasValue) return _int.Value;
+            else return _double.Value;
         }
     }
 
@@ -195,10 +203,15 @@ namespace SpreadsheetEngine
             }
             else
             {
-                bool success = Int32.TryParse(expression, out int result);
-                if (success)
+                bool int_success = Int32.TryParse(expression, out int int_result), 
+                    double_success = Double.TryParse(expression, out double double_result);
+                if (int_success)
                 {
-                    return new ValueNode(result);
+                    return new ValueNode(int_result);
+                }
+                else if (double_success)
+                {
+                    return new ValueNode(double_result);
                 }
                 else
                 {
@@ -224,7 +237,14 @@ namespace SpreadsheetEngine
         {
             expression = expression.Replace(" ", String.Empty);    // Remove spaces from expression
             this._variable_dict = new Dictionary<string, HashSet<CellReferenceNode>>();
-            _root = ConstructTree(InfixToPostfix(expression));
+            try
+            {
+                _root = ConstructTree(InfixToPostfix(expression));
+            }
+            catch (Exception ex)       // REMOVE THIS ONCE I ADD TO SPREADSHEET! Spreadsheet needs to handle the error / propagate it up to UI layer
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         /// <summary>
@@ -249,12 +269,12 @@ namespace SpreadsheetEngine
                 TreeNode tree = treeNodeFactory.FactoryMethod(tok);
                 if (tree is OperatorNode)
                 {
-                    if (tree is BinaryOperatorNode)
+                    if (tree is BinaryOperatorNode)       // do subcheck because I might extend this for unary operators too.
                     {
-                        BinaryOperatorNode binaryOperator = tree as BinaryOperatorNode;
-                        TreeNode right = stack.Pop(), left = stack.Pop();
-                        binaryOperator.left = left; binaryOperator.right = right;
-                        stack.Push(binaryOperator);
+                        BinaryOperatorNode binaryOperator = tree as BinaryOperatorNode;     // cast as binary op
+                        TreeNode right = stack.Pop(), left = stack.Pop();                   // since stack is LIFO, right child is top
+                        binaryOperator.left = left; binaryOperator.right = right;           // set children
+                        stack.Push(binaryOperator);                                         // push back onto stack
                     }
                 }
                 else if (tree is CellReferenceNode)
@@ -265,18 +285,20 @@ namespace SpreadsheetEngine
                         _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
                     }
                     _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
-                    stack.Push(tree);
+                    stack.Push(tree);     // simply push
                 }
                 else      // ValueNode
                 {
-                    stack.Push(tree);
+                    stack.Push(tree);     // simply push
                 }
             }
             return stack.Pop();
         }
 
         /// <summary>
-        /// 
+        /// Tokenize the expression into a list of strings. Matches decimal/integers, cell labels, operators, and wildcard.
+        /// We match wildcard when wild_cards_present == true so that invalid input can be detected during the 
+        /// infixToPostfix stage.
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
@@ -290,9 +312,8 @@ namespace SpreadsheetEngine
             // use '\' for special characters to escape it
 
             // This pattern will match decimal numbers (first part), cell label (second part), the operators: +-*/() (third part), or wildcard: . (fourth part)
-
             string @pattern = @"[\d]+\.?[\d]*|[A-Za-z]+[0-9]+|[-/\+\*\(\)]";
-            if (wild_cards_present) pattern += "|.";
+            if (wild_cards_present) pattern += "|.";         // add in this optional wildcard if bool passed in is true
             Regex r = new Regex(@pattern);
             MatchCollection matchList = Regex.Matches(expression, @pattern);
             return matchList.Cast<Match>().Select(match => match.Value).ToList();
@@ -306,7 +327,6 @@ namespace SpreadsheetEngine
         /// <returns></returns>
         private string InfixToPostfix(string expression)
         {
-            HashSet<char> left_associative_operators = new HashSet<char>(new char[] { '*', '/' });
             HashSet<char> operators = new HashSet<char>(new char[] { '+', '-', '*', '/' });
             Dictionary<char, int> precedence = new Dictionary<char, int>
             {
@@ -315,7 +335,7 @@ namespace SpreadsheetEngine
                 ['-'] = 1,
                 ['*'] = 2,
                 ['/'] = 2,
-                [')'] = 10
+                [')'] = 10            // high precedence since it's closing off a priority subsection 
             };
 
             var list = Tokenize(expression, true);       // true ==> wildcards ARE present
@@ -323,8 +343,8 @@ namespace SpreadsheetEngine
             Stack<char> opStack = new Stack<char>();
             foreach (string tok in list)
             {
-                if (int.TryParse(tok, out int int_result) || decimal.TryParse(tok, out decimal dec_result)
-                    || Regex.Match(tok, @"[A-Za-z]+[0-9]+").Success)        // if token is an integer or decimal or a cell label (i.e. some letters followed by some numbers)
+                if (int.TryParse(tok, out int int_result) || double.TryParse(tok, out double dec_result)
+                    || Regex.Match(tok, @"[A-Za-z]+[0-9]+").Success)        // if token is an integer or double or a cell label (i.e. some letters followed by some numbers)
                 {
                     output_list.Enqueue(tok);    // push to output queue
                 }
@@ -367,7 +387,10 @@ namespace SpreadsheetEngine
             // If there are still operators on the opstack, pop them to the result queue.
             while (opStack.Count > 0)
             {
-                output_list.Enqueue(opStack.Pop().ToString());
+                if (opStack.Peek() != '(' || opStack.Peek() != ')')
+                    output_list.Enqueue(opStack.Pop().ToString());
+                else
+                    throw new Exception("Mismatched Parenthesis in expression");
             }
             return string.Join(" ", output_list.ToArray());
         }
