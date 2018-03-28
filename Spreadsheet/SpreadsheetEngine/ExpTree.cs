@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace SpreadsheetEngine
 {
@@ -148,7 +149,7 @@ namespace SpreadsheetEngine
 
     internal abstract class OpNodeFactory
     {
-        public abstract OperatorNode FactoryMethod(char op);
+        public abstract OperatorNode FactoryMethod(string op);
     }
 
     /// <summary>
@@ -158,14 +159,14 @@ namespace SpreadsheetEngine
     /// </summary>
     internal class ConcreteOpNodeFactory : OpNodeFactory
     {
-        public override OperatorNode FactoryMethod(char op)
+        public override OperatorNode FactoryMethod(string op)
         {
             switch (op)
             {
-                case '+': return new AddNode();
-                case '-': return new SubtractNode();
-                case '*': return new MultiplyNode();
-                case '/': return new DivideNode();
+                case "+": return new AddNode();
+                case "-": return new SubtractNode();
+                case "*": return new MultiplyNode();
+                case "/": return new DivideNode();
                 default: return null;
             }
         }
@@ -187,7 +188,7 @@ namespace SpreadsheetEngine
         public override TreeNode FactoryMethod(string expression)
         {
             OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
-            OperatorNode @operator = opNodeFactory.FactoryMethod(expression[0]);
+            OperatorNode @operator = opNodeFactory.FactoryMethod(expression);
             if (@operator != null)
             {
                 return @operator;
@@ -223,65 +224,152 @@ namespace SpreadsheetEngine
         {
             expression = expression.Replace(" ", String.Empty);    // Remove spaces from expression
             this._variable_dict = new Dictionary<string, HashSet<CellReferenceNode>>();
-            _root = ConstructTree(expression);
+            _root = ConstructTree(InfixToPostfix(expression));
         }
 
         /// <summary>
-        /// Recursively construct the expression tree. Determine node type by utilizing 
-        /// the factory method. In this way, we don't have to directly determine the type of TreeNode
+        /// Construct the expression tree from a postfix input string. 
+        /// Pseudocode from: https://www.geeksforgeeks.org/expression-tree/
+        /// Determine node type by utilizing the factory method. In this way, 
+        /// we don't have to directly determine the type of TreeNode
         /// in this method.
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
         private TreeNode ConstructTree(string expression)
         {
-            if (expression == string.Empty)   // base case
+            // Step 1: Tokenize once again.
+            var list = Tokenize(expression, false);    // false ==> wildcards are NOT present
+
+            // Step 2: Walk through tokens and build tree using a stack
+            Stack<TreeNode> stack = new Stack<TreeNode>();
+            TreeNodeFactory treeNodeFactory = new ConcreteTreeNodeFactory();
+            foreach (string tok in list)
             {
-                return null;
-            }
-            
-            // Recursive Step: Add children only if token is an operator.
-            // Currently, we'll ignore order of operations and assume the higher precedence operators are at the front of the string
-            for (int i = expression.Length - 1; i >= 0; i--)
-            {
-                OpNodeFactory opNodeFactory = new ConcreteOpNodeFactory();
-                OperatorNode @operator = opNodeFactory.FactoryMethod(expression[i]);
-                if (@operator != null)    // then @operator is an operator
+                TreeNode tree = treeNodeFactory.FactoryMethod(tok);
+                if (tree is OperatorNode)
                 {
-                    if (@operator is BinaryOperatorNode)
+                    if (tree is BinaryOperatorNode)
                     {
-                        BinaryOperatorNode binaryOperator = @operator as BinaryOperatorNode;
-                        TreeNode left = ConstructTree(expression.Substring(0, i)), right = ConstructTree(expression.Substring(i + 1));
-                        if (left is null || right is null)        // reference check
+                        BinaryOperatorNode binaryOperator = tree as BinaryOperatorNode;
+                        TreeNode right = stack.Pop(), left = stack.Pop();
+                        binaryOperator.left = left; binaryOperator.right = right;
+                        stack.Push(binaryOperator);
+                    }
+                }
+                else if (tree is CellReferenceNode)
+                {
+                    CellReferenceNode cellReferenceNode = tree as CellReferenceNode;
+                    if (!_variable_dict.ContainsKey(cellReferenceNode.Name))      // variable not currently in dictionary
+                    {
+                        _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
+                    }
+                    _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
+                    stack.Push(tree);
+                }
+                else      // ValueNode
+                {
+                    stack.Push(tree);
+                }
+            }
+            return stack.Pop();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        private List<string> Tokenize(string expression, bool wild_cards_present)
+        {
+            // REGEX Notes:
+            // [] matches just single char in that group
+            // () matches full expression
+            // * means matches previous thing 0 or more times; + means one or more
+            // ? means 0 or more
+            // use '\' for special characters to escape it
+
+            // This pattern will match decimal numbers (first part), cell label (second part), the operators: +-*/() (third part), or wildcard: . (fourth part)
+
+            string @pattern = @"[\d]+\.?[\d]*|[A-Za-z]+[0-9]+|[-/\+\*\(\)]";
+            if (wild_cards_present) pattern += "|.";
+            Regex r = new Regex(@pattern);
+            MatchCollection matchList = Regex.Matches(expression, @pattern);
+            return matchList.Cast<Match>().Select(match => match.Value).ToList();
+        }
+
+        /// <summary>
+        /// Shunting Yard Algorithm
+        /// Developed from pseudocode here: https://brilliant.org/wiki/shunting-yard-algorithm/
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
+        private string InfixToPostfix(string expression)
+        {
+            HashSet<char> left_associative_operators = new HashSet<char>(new char[] { '*', '/' });
+            HashSet<char> operators = new HashSet<char>(new char[] { '+', '-', '*', '/' });
+            Dictionary<char, int> precedence = new Dictionary<char, int>
+            {
+                ['('] = 0,
+                ['+'] = 1,
+                ['-'] = 1,
+                ['*'] = 2,
+                ['/'] = 2,
+                [')'] = 10
+            };
+
+            var list = Tokenize(expression, true);       // true ==> wildcards ARE present
+            Queue<string> output_list = new Queue<string>(list.Capacity);
+            Stack<char> opStack = new Stack<char>();
+            foreach (string tok in list)
+            {
+                if (int.TryParse(tok, out int int_result) || decimal.TryParse(tok, out decimal dec_result)
+                    || Regex.Match(tok, @"[A-Za-z]+[0-9]+").Success)        // if token is an integer or decimal or a cell label (i.e. some letters followed by some numbers)
+                {
+                    output_list.Enqueue(tok);    // push to output queue
+                }
+                else    // assume it's an operator type
+                {
+                    if (operators.Contains(tok[0]))          // i.e. tok is an operator
+                    {
+                        while (opStack.Count != 0 && precedence[opStack.Peek()] > precedence[tok[0]])    // while operator on opstack has higher precedence than current op
                         {
-                            throw new ArgumentNullException("Operator is binary and needs two arguments.");
+                            output_list.Enqueue(opStack.Pop().ToString());          // pop operator and enqueue to output
                         }
-                        binaryOperator.left = left;
-                        binaryOperator.right = right;
-                        return binaryOperator;    // return the reference
+                        opStack.Push(tok[0]);       // push current op onto stack
+                    }
+                    else if (tok.StartsWith("("))      // mark left parenthesis by pushing onto opstack
+                    {
+                        opStack.Push(tok[0]);
+                    }
+                    else if (tok.StartsWith(")"))
+                    {
+                        try
+                        {
+                            while (opStack.Peek() != '(')          // If we run into a right parenthesis, keep popping opstack til we get to left parenthesis
+                            {
+                                output_list.Enqueue(opStack.Pop().ToString());       // this will throw an exception if opStack is empty
+                            }
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            throw new Exception("Mismatched Parenthesis in expression");
+                        }
+                        opStack.Pop();    // pop left parenthesis from stack
+                    }
+                    else           // unrecognized token
+                    {
+                        throw new ArgumentException(string.Format("{0} is not a valid formula value.", tok));
                     }
                 }
             }
 
-            // If we traversed through "expression" without node creation, then there are no operators remaining
-            // in the expression. Thus, the expression is either a CellReferenceNode or ValueNode.
-            TreeNodeFactory treeNodeFactory = new ConcreteTreeNodeFactory();
-            TreeNode treeNode = treeNodeFactory.FactoryMethod(expression);
-            if (treeNode is CellReferenceNode)
+            // If there are still operators on the opstack, pop them to the result queue.
+            while (opStack.Count > 0)
             {
-                CellReferenceNode cellReferenceNode = treeNode as CellReferenceNode;
-                if (!_variable_dict.ContainsKey(cellReferenceNode.Name))      // variable not currently in dictionary
-                {
-                    _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
-                }
-                _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
+                output_list.Enqueue(opStack.Pop().ToString());
             }
-            return treeNode;
-        }
-
-        private string InfixToPostfix(string expression)
-        {
-            return "";
+            return string.Join(" ", output_list.ToArray());
         }
 
         /// <summary>

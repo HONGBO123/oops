@@ -15,7 +15,7 @@ using SpreadsheetEngine;
 
 
 
-using System.Text.RegularExpressions;
+
 
 namespace TestExpTree
 {
@@ -23,26 +23,7 @@ namespace TestExpTree
     {
         static void Main(string[] args)
         {
-            //RunExpTreeTester();
-            // playing around with regex
-            // REGEX Notes:
-            // [] matches just single char in that group
-            // () matches full expression
-            // * means matches previous thing 0 or more times; + means one or more
-            // ? means 0 or more
-            // use '\' for special characters to escape it
-
-            // In pattern, first part matches cell number; second part matches a signed decimal number; third part matches operator
-            string @pattern = @"[A-Za-z]+[0-9]+|-?\d*\.?\d*|[\+=\*/\(\)]";
-            //string @pattern = @"(-?\d*\.?\d*)";
-            Regex r = new Regex(@pattern);
-            string test_string = "(A5+7)*-34.78-hello";
-            foreach (Match match in r.Matches(test_string))
-            {
-                Console.WriteLine(match);
-            }
-
-
+            RunExpTreeTester();
         }
 
         static void PrintMenu(string current_expression)
@@ -62,7 +43,7 @@ namespace TestExpTree
         /// </summary>
         static void RunExpTreeTester()
         {
-            string new_expr = "default", menu_option = String.Empty;
+            string new_expr = "5+5", menu_option = String.Empty;
             ExpTree tree = new ExpTree(new_expr);
             int option = 0;
             do
