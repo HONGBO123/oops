@@ -29,7 +29,7 @@ namespace SpreadsheetEngine
         ///     _error_message
         /// </summary>
         private Cell[,] _spreadsheet;
-        private Dictionary<string, HashSet<string>> _dependencies;
+        private Dictionary<AbstractCell, HashSet<AbstractCell>> _dependencies;
         private readonly int _row_dim = 0;
         private readonly int _col_dim = 1;
         private static string _column_header_alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z";
@@ -45,11 +45,13 @@ namespace SpreadsheetEngine
         public Spreadsheet(int num_rows, int num_cols)
         {
             _spreadsheet = new Cell[num_rows, num_cols];
+            _dependencies = new Dictionary<AbstractCell, HashSet<AbstractCell>>();
+            string[] colheaders = ColumnHeaders(num_cols);
             for (int i = 0; i < num_rows; ++i)
             {
                 for (int j = 0; j < num_cols; ++j)
                 {
-                    _spreadsheet[i, j] = new Cell(i, j);    // initialize 2-D array with Cell(i,j) at location [i,j]
+                    _spreadsheet[i, j] = new Cell(i, j, colheaders[j] + (i+1).ToString());    // initialize 2-D array with Cell(i,j) at location [i,j] with name colheaders[j](i+1)
                     _spreadsheet[i, j].PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);    // delegate event handler for every cell in _spreadsheet
                 }
             }
@@ -151,6 +153,69 @@ namespace SpreadsheetEngine
             }
         }
 
+        private void RemoveDependencies(AbstractCell cell)
+        {
+            if (_dependencies.ContainsKey(cell))     // If the cell had any dependencies,
+            {
+                _dependencies[cell].Clear();         // then remove them
+            }
+            _dependencies.Remove(cell);        // Remove key
+        }
+        
+        /// <summary>
+        /// Returns true if there are no reference cycles. False otherwise.
+        /// EX of Reference Cycle:
+        ///     A5 = 5 + B7
+        ///     B7 = C5
+        ///     C5 = A5
+        /// Note that since this is done each time the text is updated, there won't be any cycles
+        /// that don't include 'cell.' If there were, we would have already thrown an error.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        private bool NoReferenceCycles(AbstractCell root, AbstractCell cell)
+        {
+            // BASE CASE:
+            if (!_dependencies.ContainsKey(cell)) return true;       // no dependencies
+
+            // RECURSION: 
+            bool result = true;
+            foreach (AbstractCell ac in _dependencies[cell])
+            {
+                if (ReferenceEquals(ac, root)) return false;
+                result = result && NoReferenceCycles(root, ac);      // AND result of recursive call for each of cell's dependencies-- if one or more cycles, returns false
+            }
+            return result;
+        }
+
+        private void CascadingEffect(AbstractCell cell)
+        {
+            if (NoReferenceCycles(cell, cell))
+            {
+                foreach (HashSet<AbstractCell> hs in _dependencies.Values)
+                {
+                    //_dependencies.
+                    // IDEA: if C appears in any of the hashsets, update the key for that hashset
+                        // EvaluateFormula(key);
+                        //_dependencies.
+                }
+                foreach (AbstractCell key in _dependencies.Keys)
+                {
+                    foreach (AbstractCell hashed_val in _dependencies[key])     // Check if cell appears in any of the hashsets
+                    {
+                        if (ReferenceEquals(hashed_val, cell))       // If so, we need to re-evaluate the formula for the key that mapped to the hashset
+                        {
+                            EvaluateFormula(key);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                throw new Exception("Circular reference detected.");
+            }
+        }
+
         /// <summary>
         /// Handles the event of text change fired by the AbstractCell Class.
         /// </summary>
@@ -165,8 +230,10 @@ namespace SpreadsheetEngine
                 case "Text":
                     try
                     {
-                        DetermineCellValue(ref c);
+                        RemoveDependencies(c);
+                        DetermineCellValue(c);
                         PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
+                        CascadingEffect(c);    // if this changed any other
                     }
                     catch (Exception ex)
                     {
@@ -187,7 +254,7 @@ namespace SpreadsheetEngine
         /// Otherwise, evaluate the formula.
         /// </summary>
         /// <param name="cell"></param>
-        private void DetermineCellValue(ref AbstractCell cell)
+        private void DetermineCellValue(AbstractCell cell)
         {
             if (cell.Text.Length == 0)
             {
@@ -199,7 +266,7 @@ namespace SpreadsheetEngine
                 {
                     try
                     {
-                        EvaluateFormula(ref cell);
+                        EvaluateFormula(cell);
                     }
                     catch
                     {
@@ -223,7 +290,7 @@ namespace SpreadsheetEngine
         /// a formula. This function evaluats that formula.
         /// </summary>
         /// <param name="cell"></param>
-        private void EvaluateFormula(ref AbstractCell cell)
+        private void EvaluateFormula(AbstractCell cell)
         {
             // For now, assume that the "formula" is just the name of another cell.
             // idea: parse cell into "col header" and "number"
@@ -235,8 +302,26 @@ namespace SpreadsheetEngine
 
             try
             {
-                int[] indices = ReferenceToIndices(cell.Text.Substring(1));      // pass in full string BUT '=' at start
-                cell.Value = GetCell(indices[0], indices[1]).Value;
+                ExpTree expTree = new ExpTree(cell.Text.Substring(1));    // pass in full string BUT '=' at start to expression tree constructor
+                List<string> cellRefs = expTree.GetVariablesInExpression();     // get the cell references that are present in expression
+                foreach (string cellName in cellRefs)
+                {
+                    // note: the "RefToIndices" method should probs throw errors instead of catching them internally
+                    int[] indices = ReferenceToIndices(cellName);
+                    // throw error ^^^^^^^^^^
+
+                    AbstractCell cellReliesOnThisGuy = GetCell(indices[0], indices[1]);     // throws error if out of bounds
+                    // 'cell' DEPENDS on each cell that cellName refers to, so add it to dict
+                    if (!_dependencies.ContainsKey(cell)) _dependencies.Add(cell, new HashSet<AbstractCell>());    // we first check if this is a new entry in the dict-- if so, add
+                    _dependencies[cell].Add(cellReliesOnThisGuy);
+
+                    // Now, only allow a reference if the referenced cell's value can be converted to a double!
+                    bool success = Double.TryParse(cellReliesOnThisGuy.Value, out double result);
+                    if (success) expTree.SetVar(cellName, result);                    // now that we have the cell, set its value in the expression tree
+                    else throw new ArgumentException(String.Format("{0} is not a value that can be referenced in a formula.", cellReliesOnThisGuy.Value));
+                }
+                cell.Value = expTree.Eval().ToString();
+                
             }
             catch
             {

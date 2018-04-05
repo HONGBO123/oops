@@ -34,10 +34,11 @@ namespace SpreadsheetEngine
         /// </summary>
         /// <param name="r_index"></param>
         /// <param name="c_index"></param>
-        public AbstractCell(int r_index, int c_index)
+        public AbstractCell(int r_index, int c_index, string name)
         {
             _row_index = r_index;
             _col_index = c_index;
+            _name = name;
         }
 
         /// <summary>
@@ -109,6 +110,11 @@ namespace SpreadsheetEngine
             }
         }
 
+        public override int GetHashCode()
+        {
+            return _name.GetHashCode();
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;       
 
         /// <summary>
@@ -130,6 +136,6 @@ namespace SpreadsheetEngine
     /// </summary>
     public class Cell : AbstractCell
     {
-        public Cell(int r_index, int c_index) : base(r_index, c_index) { }
+        public Cell(int r_index, int c_index, string name) : base(r_index, c_index, name) { }
     }
 }

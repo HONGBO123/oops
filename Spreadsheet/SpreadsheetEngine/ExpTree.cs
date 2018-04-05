@@ -267,29 +267,35 @@ namespace SpreadsheetEngine
             foreach (string tok in list)
             {
                 TreeNode tree = treeNodeFactory.FactoryMethod(tok);
-                if (tree is OperatorNode)
+                switch (tree)      // Switch on the TreeNode's type.
                 {
-                    if (tree is BinaryOperatorNode)       // do subcheck because I might extend this for unary operators too.
-                    {
-                        BinaryOperatorNode binaryOperator = tree as BinaryOperatorNode;     // cast as binary op
-                        TreeNode right = stack.Pop(), left = stack.Pop();                   // since stack is LIFO, right child is top
-                        binaryOperator.left = left; binaryOperator.right = right;           // set children
-                        stack.Push(binaryOperator);                                         // push back onto stack
-                    }
-                }
-                else if (tree is CellReferenceNode)
-                {
-                    CellReferenceNode cellReferenceNode = tree as CellReferenceNode;
-                    if (!_variable_dict.ContainsKey(cellReferenceNode.Name))      // variable not currently in dictionary
-                    {
-                        _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
-                    }
-                    _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
-                    stack.Push(tree);     // simply push
-                }
-                else      // ValueNode
-                {
-                    stack.Push(tree);     // simply push
+                    case OperatorNode opnode:
+                        switch (opnode)          // switch statement because eventually we'll have unary operators and possibly others (function types)
+                        {
+                            case BinaryOperatorNode bopnode:
+                                BinaryOperatorNode binaryOperator = bopnode as BinaryOperatorNode;     // cast as binary op
+                                TreeNode right = stack.Pop(), left = stack.Pop();                   // since stack is LIFO, right child is top
+                                binaryOperator.left = left; binaryOperator.right = right;           // set children
+                                stack.Push(binaryOperator);                                         // push back onto stack
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case CellReferenceNode crnode:
+                        CellReferenceNode cellReferenceNode = tree as CellReferenceNode;
+                        if (!_variable_dict.ContainsKey(cellReferenceNode.Name))      // variable not currently in dictionary
+                        {
+                            _variable_dict.Add(cellReferenceNode.Name, new HashSet<CellReferenceNode>());
+                        }
+                        _variable_dict[cellReferenceNode.Name].Add(cellReferenceNode);    // hashset allows for multiple nodes with identical keys (ex: A5 + A5 + 6)
+                        stack.Push(tree);     // simply push
+                        break;
+                    case ValueNode vnode:
+                        stack.Push(tree);     // simply push
+                        break;
+                    default:
+                        break;
                 }
             }
             return stack.Pop();
@@ -413,6 +419,15 @@ namespace SpreadsheetEngine
             {
                 throw new KeyNotFoundException(String.Format("{0} is not a variable in the expression", varName));
             }
+        }
+
+        /// <summary>
+        /// Return a list of variables in the expression tree.
+        /// </summary>
+        /// <returns></returns>
+        public List<string> GetVariablesInExpression()
+        {
+            return new List<string>(_variable_dict.Keys); 
         }
 
         /// <summary>
