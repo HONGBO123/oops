@@ -233,7 +233,7 @@ namespace SpreadsheetEngine
                         RemoveDependencies(c);
                         DetermineCellValue(c);
                         PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
-                        CascadingEffect(c);    // if this changed any other
+                        
                     }
                     catch (Exception ex)
                     {
@@ -241,6 +241,10 @@ namespace SpreadsheetEngine
                         _error_message = ex.Message;
                     }
                     // Lastly, if any cells are dependent on c, update these
+                    break;
+                case "Value":
+                    CascadingEffect(c);    // if this changed any other
+                    PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
                     break;
                 default:
                     break;
@@ -311,7 +315,11 @@ namespace SpreadsheetEngine
                     // throw error ^^^^^^^^^^
 
                     AbstractCell cellReliesOnThisGuy = GetCell(indices[0], indices[1]);     // throws error if out of bounds
-                    // 'cell' DEPENDS on each cell that cellName refers to, so add it to dict
+                    //Cell cell = cellReliesOnThisGuy as Cell;
+                    //cellReliesOnThisGuy.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
+
+
+                    //// 'cell' DEPENDS on each cell that cellName refers to, so add it to dict
                     if (!_dependencies.ContainsKey(cell)) _dependencies.Add(cell, new HashSet<AbstractCell>());    // we first check if this is a new entry in the dict-- if so, add
                     _dependencies[cell].Add(cellReliesOnThisGuy);
 

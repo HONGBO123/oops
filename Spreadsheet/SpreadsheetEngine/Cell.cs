@@ -95,7 +95,11 @@ namespace SpreadsheetEngine
             }
             internal set     // only classes within this DLL can set; even classes that inherit from AbstractCell outside of this DLL cannot
             {
-                _value = value;
+                if (value != _value)
+                {
+                    _value = value;
+                    OnPropertyChanged("Value");
+                }
             }
         }
 
