@@ -241,9 +241,9 @@ namespace SpreadsheetEngine
             {
                 _root = ConstructTree(InfixToPostfix(expression));
             }
-            catch (Exception ex)       // REMOVE THIS ONCE I ADD TO SPREADSHEET! Spreadsheet needs to handle the error / propagate it up to UI layer
+            catch 
             {
-                Console.WriteLine(ex.Message);
+                throw;              // propagate it up to UI layer
             }
         }
 
@@ -319,7 +319,7 @@ namespace SpreadsheetEngine
 
             // This pattern will match decimal numbers (first part), cell label (second part), the operators: +-*/() (third part), or wildcard: . (fourth part)
             string @pattern = @"[\d]+\.?[\d]*|[A-Za-z]+[0-9]+|[-/\+\*\(\)]";
-            if (wild_cards_present) pattern += "|.";         // add in this optional wildcard if bool passed in is true
+            if (wild_cards_present) pattern += "|.+";         // add in this optional wildcard if bool passed in is true
             Regex r = new Regex(@pattern);
             MatchCollection matchList = Regex.Matches(expression, @pattern);
             return matchList.Cast<Match>().Select(match => match.Value).ToList();
@@ -425,9 +425,12 @@ namespace SpreadsheetEngine
         /// Return a list of variables in the expression tree.
         /// </summary>
         /// <returns></returns>
-        public List<string> GetVariablesInExpression()
+        public List<string> VariablesInExpression
         {
-            return new List<string>(_variable_dict.Keys); 
+            get
+            {
+                return new List<string>(_variable_dict.Keys);
+            }
         }
 
         /// <summary>

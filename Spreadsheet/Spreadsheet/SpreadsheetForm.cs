@@ -108,7 +108,7 @@ namespace Spreadsheet
             this.dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             this.dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
                 // Column Headers
-            foreach (string colHeader in SpreadsheetEngine.Spreadsheet.ColumnHeaders(Constants.numberOfColumns))
+            foreach (string colHeader in SpreadsheetEngine.Spreadsheet.ColumnHeaders)
             {
                 this.dataGridView1.Columns.Add(colHeader, colHeader);       // add as column header
             }
@@ -183,7 +183,8 @@ namespace Spreadsheet
             {
                 DataGridView dgv = sender as DataGridView;
                 SpreadsheetEngine.AbstractCell editedCell = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex);    // grab reference to backend cell being edited
-                editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();             // update reference's text
+                if (dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value != null) editedCell.Text = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();  // update reference's text
+                else editedCell.Text = "";       // if user removes all text... need to set text to nothing
                 dgv.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = editedCell.Value;                             // display the value rather than the text.
             }
             catch (IndexOutOfRangeException ex)

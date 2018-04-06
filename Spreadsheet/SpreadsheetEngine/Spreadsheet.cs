@@ -20,10 +20,10 @@ namespace SpreadsheetEngine
         /// <summary>
         /// Fields:
         ///     _spreadsheet
-        ///     _dependencies: key : cell name, value : cell names that the key is dependent on
+        ///     _dependencies: key : cell (by name), value : hashset of cells that the key is dependent on (again hashed by name)
         ///     _row_dim
         ///     _col_dim
-        ///     _column_header_alphabet: should be in this DLL because determining a cell reference's indices is dependent upon col headers
+        ///     _column_headers: should be in this DLL because determining a cell reference's indices is dependent upon col headers
         ///     PropertyChanged Event
         ///     _error_occurred
         ///     _error_message
@@ -33,6 +33,7 @@ namespace SpreadsheetEngine
         private readonly int _row_dim = 0;
         private readonly int _col_dim = 1;
         private static string _column_header_alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z";
+        private static string[] _column_headers;
         public event PropertyChangedEventHandler PropertyChanged;
         private bool _error_occurred = false;
         private string _error_message = "";
@@ -46,12 +47,12 @@ namespace SpreadsheetEngine
         {
             _spreadsheet = new Cell[num_rows, num_cols];
             _dependencies = new Dictionary<AbstractCell, HashSet<AbstractCell>>();
-            string[] colheaders = ColumnHeaders(num_cols);
+            _column_headers = CreateColumnHeaders(num_cols);
             for (int i = 0; i < num_rows; ++i)
             {
                 for (int j = 0; j < num_cols; ++j)
                 {
-                    _spreadsheet[i, j] = new Cell(i, j, colheaders[j] + (i+1).ToString());    // initialize 2-D array with Cell(i,j) at location [i,j] with name colheaders[j](i+1)
+                    _spreadsheet[i, j] = new Cell(i, j, _column_headers[j] + (i+1).ToString());    // initialize 2-D array with Cell(i,j) at location [i,j] with name colheaders[j](i+1)
                     _spreadsheet[i, j].PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);    // delegate event handler for every cell in _spreadsheet
                 }
             }
@@ -63,7 +64,7 @@ namespace SpreadsheetEngine
         /// If you'd like to have a special character in the alphabet, add this to the alphabet string below (separated by a delimiter).
         /// </summary>
         /// <returns></returns>
-        public static string[] ColumnHeaders(int numberOfColumns)
+        public static string[] CreateColumnHeaders(int numberOfColumns)
         {
             string[] alphabet = _column_header_alphabet.Split(new char[] { ',' });
             string[] columnHeaders = new string[numberOfColumns];
@@ -78,6 +79,17 @@ namespace SpreadsheetEngine
                 columnHeaders.SetValue(header, i);       // Set Header
             }
             return columnHeaders;
+        }
+
+        /// <summary>
+        /// Property to return _column_headers
+        /// </summary>
+        public static string[] ColumnHeaders
+        {
+            get
+            {
+                return _column_headers;
+            }
         }
 
         /// <summary>
@@ -153,6 +165,10 @@ namespace SpreadsheetEngine
             }
         }
 
+        /// <summary>
+        /// Remove the key "cell" from the dependency dictionary.
+        /// </summary>
+        /// <param name="cell"></param>
         private void RemoveDependencies(AbstractCell cell)
         {
             if (_dependencies.ContainsKey(cell))     // If the cell had any dependencies,
@@ -175,11 +191,11 @@ namespace SpreadsheetEngine
         /// <returns></returns>
         private bool NoReferenceCycles(AbstractCell root, AbstractCell cell)
         {
-            // BASE CASE:
-            if (!_dependencies.ContainsKey(cell)) return true;       // no dependencies
+            // BASE CASE: cell has no dependencies, so no cycle exists in this subtree
+            if (!_dependencies.ContainsKey(cell)) return true;     
 
-            // RECURSION: 
-            bool result = true;
+            // RECURSION: cell depends on other cells, so we need to continue to check them for a cycle
+            bool result = true;      // assume true since we only need a single "false" to return false
             foreach (AbstractCell ac in _dependencies[cell])
             {
                 if (ReferenceEquals(ac, root)) return false;
@@ -188,25 +204,21 @@ namespace SpreadsheetEngine
             return result;
         }
 
+        /// <summary>
+        /// The algorithm behind any spreadsheet's classic "cascading changes" effect.
+        /// This is called when a cell's value changes. We must always check to see if 
+        /// other cells depended on that value. If so, they need to be updated as well.
+        /// </summary>
+        /// <param name="cell"></param>
         private void CascadingEffect(AbstractCell cell)
         {
             if (NoReferenceCycles(cell, cell))
             {
-                foreach (HashSet<AbstractCell> hs in _dependencies.Values)
+                foreach (AbstractCell key in _dependencies.Keys)       // For every cell that has dependencies
                 {
-                    //_dependencies.
-                    // IDEA: if C appears in any of the hashsets, update the key for that hashset
-                        // EvaluateFormula(key);
-                        //_dependencies.
-                }
-                foreach (AbstractCell key in _dependencies.Keys)
-                {
-                    foreach (AbstractCell hashed_val in _dependencies[key])     // Check if cell appears in any of the hashsets
+                    if (_dependencies[key].Contains(cell))       // If "cell" is in a hashset (mapped to by key), then "key" needs to be reevaluated since "cell"'s value changed
                     {
-                        if (ReferenceEquals(hashed_val, cell))       // If so, we need to re-evaluate the formula for the key that mapped to the hashset
-                        {
-                            EvaluateFormula(key);
-                        }
+                        DetermineCellValue(key);
                     }
                 }
             }
@@ -223,33 +235,37 @@ namespace SpreadsheetEngine
         /// <param name="e"></param>
         public void OnCellPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            //_error_occurred = false;           // in the beginning, no error has occurred
             AbstractCell c = sender as AbstractCell;
             switch (e.PropertyName)
             {
                 case "Text":
                     try
                     {
-                        RemoveDependencies(c);
+                        RemoveDependencies(c);         // At the start, remove all dependencies since the changed text could have removed them.
                         DetermineCellValue(c);
-                        PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
-                        
                     }
                     catch (Exception ex)
                     {
                         _error_occurred = true;
                         _error_message = ex.Message;
                     }
-                    // Lastly, if any cells are dependent on c, update these
+                    PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
                     break;
                 case "Value":
-                    CascadingEffect(c);    // if this changed any other
+                    try
+                    {
+                        CascadingEffect(c);  
+                    }
+                    catch (Exception ex)
+                    {
+                        _error_occurred = true;
+                        _error_message = ex.Message;
+                    }
                     PropertyChanged?.Invoke(sender, new PropertyChangedEventArgs("Value"));    // Pass along event to whoever uses this class
                     break;
                 default:
                     break;
             }
-
         }
 
         /// <summary>
@@ -274,6 +290,7 @@ namespace SpreadsheetEngine
                     }
                     catch
                     {
+                        cell.Value = "#REF!";      // set display value to some weird string, so that the user knows to fix it
                         throw;      // propagate error upwards
                     }
                 }
@@ -296,40 +313,26 @@ namespace SpreadsheetEngine
         /// <param name="cell"></param>
         private void EvaluateFormula(AbstractCell cell)
         {
-            // For now, assume that the "formula" is just the name of another cell.
-            // idea: parse cell into "col header" and "number"
-            // convert "col header" to 0-based index "col_index"
-            // then cell.Value = _spreadsheet[number - 1, col_index].Value;
-
-            // But in general, we first remove all references that cell has (assume user got rid of all)
-            // Next, count references; if number of references > 0, add dependencies
-
             try
             {
                 ExpTree expTree = new ExpTree(cell.Text.Substring(1));    // pass in full string BUT '=' at start to expression tree constructor
-                List<string> cellRefs = expTree.GetVariablesInExpression();     // get the cell references that are present in expression
-                foreach (string cellName in cellRefs)
+                foreach (string cellName in expTree.VariablesInExpression)
                 {
                     // note: the "RefToIndices" method should probs throw errors instead of catching them internally
                     int[] indices = ReferenceToIndices(cellName);
-                    // throw error ^^^^^^^^^^
 
                     AbstractCell cellReliesOnThisGuy = GetCell(indices[0], indices[1]);     // throws error if out of bounds
-                    //Cell cell = cellReliesOnThisGuy as Cell;
-                    //cellReliesOnThisGuy.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
 
-
-                    //// 'cell' DEPENDS on each cell that cellName refers to, so add it to dict
+                    // 'cell' DEPENDS on each cell that cellName refers to, so add it to dict
                     if (!_dependencies.ContainsKey(cell)) _dependencies.Add(cell, new HashSet<AbstractCell>());    // we first check if this is a new entry in the dict-- if so, add
                     _dependencies[cell].Add(cellReliesOnThisGuy);
 
                     // Now, only allow a reference if the referenced cell's value can be converted to a double!
                     bool success = Double.TryParse(cellReliesOnThisGuy.Value, out double result);
                     if (success) expTree.SetVar(cellName, result);                    // now that we have the cell, set its value in the expression tree
-                    else throw new ArgumentException(String.Format("{0} is not a value that can be referenced in a formula.", cellReliesOnThisGuy.Value));
+                    else throw new ArgumentException(String.Format("Cell \"{0}\" contains a value that cannot be referenced in a formula.", cellReliesOnThisGuy.Name));
                 }
-                cell.Value = expTree.Eval().ToString();
-                
+                cell.Value = expTree.Eval().ToString();  
             }
             catch
             {
@@ -368,11 +371,11 @@ namespace SpreadsheetEngine
             }
             catch (FormatException)
             {
-                throw new ArgumentException("A column header is consecutive capital letters. Please fix this.");
+                throw new ArgumentException("Error: Invalid Column Header");
             }
             indices[0] -= 1;         // it's 1-indexed, but we need 0-indexed.
             string[] string_alphabet = _column_header_alphabet.Split(new char[] { ',' });
-            string alphabet = string.Join("", string_alphabet, 0, string_alphabet.Length - 1);       // "ABCDE..."
+            string alphabet = string.Join("", string_alphabet, 0, string_alphabet.Length - 1);       // "ABCDE...Z"
             indices[1] = (alphabet.Length * --letterRepetitions) + alphabet.IndexOf(current_char);   // Column is simply (alphabet length * (letterRepetitions - 1)) + letter - 'A'...
             return indices;
         }
