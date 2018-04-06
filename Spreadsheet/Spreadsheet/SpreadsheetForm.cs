@@ -35,11 +35,14 @@ namespace Spreadsheet
             public const int numberOfRows = 50;            // currently accepts (1 to inf)
             public const int gridWidth = 800;
             public const int gridHeight = 500;
+            public const int gridHeightOffset = 35;
             public const int formWidth = gridWidth + 30;
             public const int formHeight = demoButtonVerticalStart + 70;
             public const string demoButtonText = "Do spreadsheet modification demo where changes in engine trigger UI updates.";
             public const int demoButtonWidth = gridWidth;
-            public const int demoButtonVerticalStart = gridHeight + 10;
+            public const int demoButtonVerticalStart = gridHeightOffset + gridHeight + 10;
+            public const int editBoxHeight = 30;
+            public const int editBoxOffset = 7;
         }
 
         /// <summary>
@@ -47,6 +50,8 @@ namespace Spreadsheet
         ///     _spreadsheet : Backend spreadsheet object
         /// </summary>
         private SpreadsheetEngine.Spreadsheet _spreadsheet;
+        private int _selected_cell_row = 0;
+        private int _selected_cell_col = 0;
 
         /// <summary>
         /// Constructor
@@ -87,6 +92,10 @@ namespace Spreadsheet
             _spreadsheet.PropertyChanged += new PropertyChangedEventHandler(OnCellPropertyChanged);
             button1.Click += new EventHandler(button1_Click);
             button1.DoubleClick += new EventHandler(button1_Click);
+            dataGridView1.CellEnter += new DataGridViewCellEventHandler(dataGridView1_CellEnter);
+            textBox1.KeyDown += new KeyEventHandler(textBox1_KeyDown);
+            textBox1.Leave += new EventHandler(textBox1_Leave);
+            textBox1.EnabledChanged += new EventHandler(textBox1_EnabledChanged);
         }
 
         /// <summary>
@@ -104,9 +113,10 @@ namespace Spreadsheet
         private void SetUpDataGridView()
         {
             // Column Properties Set-Up
-            this.dataGridView1.Columns.Clear();
-            this.dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            this.dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
+            dataGridView1.Columns.Clear();
+            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
+            dataGridView1.Location = new System.Drawing.Point(0, Constants.gridHeightOffset);
                 // Column Headers
             foreach (string colHeader in SpreadsheetEngine.Spreadsheet.ColumnHeaders)
             {
@@ -114,10 +124,10 @@ namespace Spreadsheet
             }
 
             // Row Properties Set-Up
-            this.dataGridView1.AllowUserToAddRows = false;
-            this.dataGridView1.AllowUserToDeleteRows = false;
-            this.dataGridView1.RowHeadersVisible = true;
-            this.dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
+            dataGridView1.AllowUserToAddRows = false;
+            dataGridView1.AllowUserToDeleteRows = false;
+            dataGridView1.RowHeadersVisible = true;
+            dataGridView1.RowHeadersWidthSizeMode = DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
                 // Row Headers
             for (int i = 1; i <= Constants.numberOfRows; i++)
             {
@@ -129,6 +139,10 @@ namespace Spreadsheet
             button1.Text = Constants.demoButtonText;
             button1.Width = Constants.demoButtonWidth;
             button1.Location = new Point(0, Constants.demoButtonVerticalStart);
+
+            // EditingBox Properties Set-Up
+            textBox1.Size = new System.Drawing.Size(dataGridView1.Width - dataGridView1.RowHeadersWidth, Constants.editBoxHeight);
+            textBox1.Location = new System.Drawing.Point(dataGridView1.RowHeadersWidth, Constants.editBoxOffset);
         }
 
         /// <summary>
@@ -149,7 +163,7 @@ namespace Spreadsheet
             for (int i = 0; i < Constants.numberOfRows; ++i)
             {
                 SpreadsheetEngine.AbstractCell cell = _spreadsheet.GetCell(i, 1);    // 1 == column B
-                cell.Text = "This is cell B" + (i + 1).ToString();        // i + 1 because 0-indexing to 1-indexing
+                cell.Text = (i + 1).ToString();        // i + 1 because 0-indexing to 1-indexing
             }
 
             // Lastly, set every row in column B to "=B#", where # is actual row number.
@@ -234,6 +248,61 @@ namespace Spreadsheet
         private void button1_Click(object sender, EventArgs e)
         {
             Demo();
+        }
+
+        /// <summary>
+        /// Event handler to handle when the user presses a key. We check if the key pressed
+        /// is "Return" or "Enter". If it is, the user is done editing the text
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (Keys.Return == e.KeyCode)    // user pressed enter, so done editing
+            {
+                // Leaving the textbox is the generalized case that the user is done editing, so simply fire that event!
+                textBox1_Leave(sender, new EventArgs());
+            }
+        }
+
+        /// <summary>
+        /// When any datagrid view cell becomes in focus, display its text value in textBox1!
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void dataGridView1_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            textBox1.Text = _spreadsheet.GetCell(e.RowIndex, e.ColumnIndex).Text;
+            _selected_cell_row = e.RowIndex;
+            _selected_cell_col = e.ColumnIndex;
+        }
+
+        /// <summary>
+        /// When textbox1 becomes "disabled", we immediately enable it again. This is solely
+        /// for the purpose of updating the view of the textbox with its new text.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void textBox1_EnabledChanged(object sender, EventArgs e)
+        {
+            if (!textBox1.Enabled) textBox1.Enabled = true;
+        }
+
+        /// <summary>
+        /// The event handler for when the user exits the textbox.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void textBox1_Leave(object sender, EventArgs e)
+        {
+            // Set the datagridview's cell's VALUE to whatever the textbox's value is.
+            dataGridView1.Rows[_selected_cell_row].Cells[_selected_cell_col].Value = textBox1.Text;
+
+            // Next, simply fire the event for when a datagridview's cell is done editing!
+            dataGridView1_CellEndEdit(dataGridView1, new DataGridViewCellEventArgs(_selected_cell_col, _selected_cell_row));
+
+            // Lastly, we set "Enabled" to false, so control returns to the cell in question (which is good)
+            textBox1.Enabled = false;
         }
     }
 }
