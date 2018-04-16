@@ -304,5 +304,21 @@ namespace Spreadsheet
             // Lastly, we set "Enabled" to false, so control returns to the cell in question (which is good)
             textBox1.Enabled = false;
         }
+
+        private void loadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var aboutForm = new SpreadsheetAboutForm();
+            aboutForm.Show();
+        }
     }
 }
