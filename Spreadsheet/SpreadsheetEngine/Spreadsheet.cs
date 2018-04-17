@@ -12,6 +12,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
+using System.IO;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace SpreadsheetEngine
 {
@@ -330,7 +333,8 @@ namespace SpreadsheetEngine
                     // Now, only allow a reference if the referenced cell's value can be converted to a double!
                     bool success = Double.TryParse(cellReliesOnThisGuy.Value, out double result);
                     if (success) expTree.SetVar(cellName, result);                    // now that we have the cell, set its value in the expression tree
-                    else throw new ArgumentException(String.Format("Cell \"{0}\" contains a value that cannot be referenced in a formula.", cellReliesOnThisGuy.Name));
+                    else expTree.SetVar(cellName, 0.0);
+                        //throw new ArgumentException(String.Format("Cell \"{0}\" contains a value that cannot be referenced in a formula.", cellReliesOnThisGuy.Name));
                 }
                 cell.Value = expTree.Eval().ToString();  
             }
@@ -378,6 +382,62 @@ namespace SpreadsheetEngine
             string alphabet = string.Join("", string_alphabet, 0, string_alphabet.Length - 1);       // "ABCDE...Z"
             indices[1] = (alphabet.Length * --letterRepetitions) + alphabet.IndexOf(current_char);   // Column is simply (alphabet length * (letterRepetitions - 1)) + letter - 'A'...
             return indices;
+        }
+
+        /// <summary>
+        /// Returns true if cell is the default cell (i.e. after construction, no changes).
+        /// In the future, it would be better design to override Equals in Cell, and then compare
+        /// cell to a newly constructed AbstractCell to determine if default or not.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        private bool IsDefaultCell(AbstractCell cell)
+        {
+            return cell.Text == "" || cell.Value == "";
+        }
+
+        /// <summary>
+        /// Save the spreadsheet to the input stream.
+        /// </summary>
+        /// <param name="outfile"></param>
+        public void Save(Stream outfile)
+        {
+            // XmlWriter is abstract, so obtain reference to it and load outfile.
+            XmlWriter xmlWriter = XmlWriter.Create(outfile);
+
+            // Create the starting tag/element.
+            xmlWriter.WriteStartElement("spreadsheet");
+
+            foreach (Cell cell in _spreadsheet)         // for each cell in the spreadsheet
+            {
+                if (!IsDefaultCell(cell))         // if cell is not a default cell
+                {
+                    cell.WriteXml(xmlWriter);        // ask the cell to write itself to the xmlWriter
+                }
+            }
+
+            // Close "spreadsheet" tag.
+            xmlWriter.WriteEndElement();
+
+            // Close the xmlwriter.
+            xmlWriter.Close();
+        }
+
+        /// <summary>
+        /// Load the spreadsheet.
+        /// </summary>
+        /// <param name="infile"></param>
+        public void Load(Stream infile)
+        {
+            // XDocument is abstract, so obtain reference to it and laod infile.
+            XDocument xmlReader = XDocument.Load(infile);
+
+            foreach (XElement tag in xmlReader.Root.Elements("cell"))     // for each tag labeled "cell"
+            {
+                int[] indices = ReferenceToIndices(tag.Element("cellname").Value);         // grab value within cellname tag
+                AbstractCell cell = GetCell(indices[0], indices[1]);        // get the cell's indices
+                cell.Text = tag.Element("celltext").Value;      // update the cell's text
+            }
         }
     }
 }

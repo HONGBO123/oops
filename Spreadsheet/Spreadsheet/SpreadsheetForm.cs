@@ -1,11 +1,8 @@
 ﻿/*
- * Assignment #5: Spreadsheet Prototype
+ * Application: Spreadsheet
  * Author: Kyler Little
  * ID: 11472421
- * Last Modified: 3/15/2018 2:20 PM
- * 
- * Notes: Currently doesn't support "cascading changes." Would like to wait on adding this functionality until
- * we cover how to handle expressions. Also, need a break from coding to clear the head.
+ * Last Modified: 4/17/2018 2:00 PM
  */
 
 
@@ -21,6 +18,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
 namespace Spreadsheet
 {
@@ -35,14 +33,14 @@ namespace Spreadsheet
             public const int numberOfRows = 50;            // currently accepts (1 to inf)
             public const int gridWidth = 800;
             public const int gridHeight = 500;
-            public const int gridHeightOffset = 35;
+            public const int gridHeightOffset = 30;
             public const int formWidth = gridWidth + 30;
-            public const int formHeight = demoButtonVerticalStart + 70;
+            public const int formHeight = demoButtonVerticalStart + 100;
             public const string demoButtonText = "Do spreadsheet modification demo where changes in engine trigger UI updates.";
             public const int demoButtonWidth = gridWidth;
             public const int demoButtonVerticalStart = gridHeightOffset + gridHeight + 10;
             public const int editBoxHeight = 30;
-            public const int editBoxOffset = 7;
+            public const int editBoxOffset = 5;
         }
 
         internal static class AboutInformation
@@ -127,7 +125,7 @@ namespace Spreadsheet
             dataGridView1.Columns.Clear();
             dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dataGridView1.Size = new System.Drawing.Size(Constants.gridWidth, Constants.gridHeight);
-            dataGridView1.Location = new System.Drawing.Point(0, Constants.gridHeightOffset);
+            dataGridView1.Location = new System.Drawing.Point(0, menuStrip1.Height + Constants.gridHeightOffset);
                 // Column Headers
             foreach (string colHeader in SpreadsheetEngine.Spreadsheet.ColumnHeaders)
             {
@@ -149,11 +147,11 @@ namespace Spreadsheet
             // Button1 Properties Set-Up
             button1.Text = Constants.demoButtonText;
             button1.Width = Constants.demoButtonWidth;
-            button1.Location = new Point(0, Constants.demoButtonVerticalStart);
+            button1.Location = new Point(0, Constants.demoButtonVerticalStart + menuStrip1.Height);
 
             // EditingBox Properties Set-Up
             textBox1.Size = new System.Drawing.Size(dataGridView1.Width - dataGridView1.RowHeadersWidth, Constants.editBoxHeight);
-            textBox1.Location = new System.Drawing.Point(dataGridView1.RowHeadersWidth, Constants.editBoxOffset);
+            textBox1.Location = new System.Drawing.Point(dataGridView1.RowHeadersWidth, menuStrip1.Height + Constants.editBoxOffset);
         }
 
         /// <summary>
@@ -318,18 +316,65 @@ namespace Spreadsheet
 
         private void loadToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog
+            {
+                Title = "Select a file to be read and displayed in the spreadsheet.",
+                Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*",
+                FilterIndex = 2
+            };
 
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)        // User selected file and clicked "ok"
+            {
+                //_spreadsheet = new SpreadsheetEngine.Spreadsheet(Constants.numberOfRows, Constants.numberOfColumns);
+                ClearGrid();
+                using (FileStream sr = new FileStream(openFileDialog1.FileName, FileMode.Open))      // Using statement to open & close file all in one.
+                {
+                    _spreadsheet.Load(sr);
+                }
+            }
         }
 
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            SaveFileDialog saveFileDialog1 = new SaveFileDialog
+            {
+                Title = "Save the spreadsheet to a file.",
+                Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*",
+                FilterIndex = 2
+            };
 
+            if (saveFileDialog1.ShowDialog() == DialogResult.OK)        // User selected file and clicked "ok"
+            {
+                using (FileStream sw = new FileStream(saveFileDialog1.FileName, FileMode.Create))      // Using statement to open & close file all in one.
+                {
+                    try
+                    {
+                        _spreadsheet.Save(sw);
+                        //sw.Write(textBox1.Text);         // using Write instead of WriteLine so that newline isn't automatically added
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error: writing window's text to file failure. Original Error: " + ex.Message);
+                    }
+                }
+            }
         }
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var aboutForm = new SpreadsheetAboutForm();
             aboutForm.Show();
+        }
+
+        private void ClearGrid()
+        {
+            for (int i = 0; i < Constants.numberOfRows; ++i)
+            {
+                for (int j = 0; j < Constants.numberOfColumns; ++j)
+                {
+                    _spreadsheet.GetCell(i, j).Text = "";
+                }
+            }
         }
     }
 }

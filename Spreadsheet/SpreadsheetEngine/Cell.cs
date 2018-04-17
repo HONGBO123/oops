@@ -10,10 +10,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
+using System.Xml.Linq;
+using System.Xml;
+using System.Xml.Serialization;
+using System.Xml.Schema;
 
 namespace SpreadsheetEngine
 {
-    public abstract class AbstractCell : INotifyPropertyChanged
+    public abstract class AbstractCell : INotifyPropertyChanged, IXmlSerializable
     {
         /// <summary>
         /// Fields:
@@ -133,6 +137,24 @@ namespace SpreadsheetEngine
             //Console.WriteLine("value:" + _value);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
         }
+
+        public XmlSchema GetSchema()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ReadXml(XmlReader reader)
+        {
+            Text = reader.Value;
+        }
+
+        public void WriteXml(XmlWriter writer)
+        {
+            writer.WriteStartElement("cell");
+            writer.WriteElementString("cellname", this.Name);
+            writer.WriteElementString("celltext", this.Text);
+            writer.WriteEndElement();
+        }
     }
 
     /// <summary>
@@ -141,5 +163,13 @@ namespace SpreadsheetEngine
     public class Cell : AbstractCell
     {
         public Cell(int r_index, int c_index, string name) : base(r_index, c_index, name) { }
+
+        public void WriteToXml(ref XmlWriter xml)
+        {
+            xml.WriteStartElement("cell");
+            xml.WriteElementString("cellname", this.Name);
+            xml.WriteElementString("celltext", this.Text);
+            xml.WriteEndElement();
+        }
     }
 }

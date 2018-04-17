@@ -26,7 +26,9 @@ namespace Spreadsheet
 
         private void SetFormProperties()
         {
+            // Set form size
             this.Size = new Size(530, 300);
+            // Delegate event handler for link clicking.
             richTextBox1.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(Link_Clicked);
         }
 
@@ -44,9 +46,6 @@ namespace Spreadsheet
             richTextBox1.SelectAll();
             richTextBox1.SelectionAlignment = HorizontalAlignment.Center;
             richTextBox1.DeselectAll();
-            
-            // stop the cursor from blinking...
-            //richTextBox1.Text += richTextBox1.Rtf.
         }
 
         private void SetAboutText()
