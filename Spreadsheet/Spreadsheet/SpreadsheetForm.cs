@@ -45,6 +45,17 @@ namespace Spreadsheet
             public const int editBoxOffset = 7;
         }
 
+        internal static class AboutInformation
+        {
+            public const string applicationName = "Windows Spreadsheet Application";
+            public const string programVersion = "Version 5.0";
+            public const string author = "Kyler Little";
+            public const string email = "kyler.little@wsu.edu";
+            public const string copyright = "Copyright © 2018 Kyler Little";
+            public const string license = "This work is licensed under a Creative Commons Attribution 4.0 International License.";
+            public const string licenseLink = "https://creativecommons.org/licenses/by/4.0/";
+        }
+
         /// <summary>
         /// Fields
         ///     _spreadsheet : Backend spreadsheet object
