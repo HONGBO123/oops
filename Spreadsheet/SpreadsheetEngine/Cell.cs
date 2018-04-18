@@ -26,12 +26,14 @@ namespace SpreadsheetEngine
         ///     _name
         ///     _row_index
         ///     _col_index
+        ///     PropertyChanged
         /// </summary>
         protected string _text = "";
         protected string _value = "";
         private readonly string _name = "";
         private readonly int _row_index;
         private readonly int _col_index;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         /// <summary>
         /// Constructor for AbstractCell. Can NOT be instantiated.
@@ -118,12 +120,14 @@ namespace SpreadsheetEngine
             }
         }
 
+        /// <summary>
+        /// Makes an abstract cell hashable
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return _name.GetHashCode();
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;       
 
         /// <summary>
         /// If PropertyChanged isn't null, then we invoke (fire) the event. This additional check makes
@@ -133,21 +137,32 @@ namespace SpreadsheetEngine
         /// <param name="prop"></param>
         protected void OnPropertyChanged(string prop)
         {
-            //Console.Write("text:" + _text);
-            //Console.WriteLine("value:" + _value);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
         }
 
+        /// <summary>
+        /// Return Cell's XmlScheme-- UNIMPLEMENTED
+        /// </summary>
+        /// <returns></returns>
         public XmlSchema GetSchema()
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Given an XmlReader, load data into cell. This is unimplemented because I have some
+        /// readonly attributes in the xml tags that cannot be set here
+        /// </summary>
+        /// <param name="reader"></param>
         public void ReadXml(XmlReader reader)
         {
-            Text = reader.Value;
+            throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Xml-ify a cell.
+        /// </summary>
+        /// <param name="writer"></param>
         public void WriteXml(XmlWriter writer)
         {
             writer.WriteStartElement("cell");
@@ -163,13 +178,5 @@ namespace SpreadsheetEngine
     public class Cell : AbstractCell
     {
         public Cell(int r_index, int c_index, string name) : base(r_index, c_index, name) { }
-
-        public void WriteToXml(ref XmlWriter xml)
-        {
-            xml.WriteStartElement("cell");
-            xml.WriteElementString("cellname", this.Name);
-            xml.WriteElementString("celltext", this.Text);
-            xml.WriteEndElement();
-        }
     }
 }

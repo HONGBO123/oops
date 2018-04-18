@@ -26,6 +26,8 @@ namespace Spreadsheet
     {
         /// <summary>
         /// Constants that affect behavior of the program-- all in one place that is easy to manage.
+        /// In the future, this needs to be managed better. There are too many constants, making it not extensible;
+        /// in addition, it's difficult to tell what's going on. When I get more time, I will modify this.
         /// </summary>
         static class Constants
         {
@@ -43,6 +45,9 @@ namespace Spreadsheet
             public const int editBoxOffset = 5;
         }
 
+        /// <summary>
+        /// About the Spreadsheet!
+        /// </summary>
         internal static class AboutInformation
         {
             public const string applicationName = "Windows Spreadsheet Application";
@@ -314,6 +319,11 @@ namespace Spreadsheet
             textBox1.Enabled = false;
         }
 
+        /// <summary>
+        /// When user clicks load, load the spreadsheet.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void loadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog1 = new OpenFileDialog
@@ -325,8 +335,7 @@ namespace Spreadsheet
 
             if (openFileDialog1.ShowDialog() == DialogResult.OK)        // User selected file and clicked "ok"
             {
-                //_spreadsheet = new SpreadsheetEngine.Spreadsheet(Constants.numberOfRows, Constants.numberOfColumns);
-                ClearGrid();
+                ClearGrid();           // first, empty datagridview and backend spreadsheet
                 using (FileStream sr = new FileStream(openFileDialog1.FileName, FileMode.Open))      // Using statement to open & close file all in one.
                 {
                     _spreadsheet.Load(sr);
@@ -334,6 +343,11 @@ namespace Spreadsheet
             }
         }
 
+        /// <summary>
+        /// When user clicks save, save the spreadsheet
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog1 = new SaveFileDialog
@@ -350,22 +364,29 @@ namespace Spreadsheet
                     try
                     {
                         _spreadsheet.Save(sw);
-                        //sw.Write(textBox1.Text);         // using Write instead of WriteLine so that newline isn't automatically added
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error: writing window's text to file failure. Original Error: " + ex.Message);
+                        MessageBox.Show("Error: problem with saving file. Original Error: " + ex.Message);
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Constructs a new about window and displays.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var aboutForm = new SpreadsheetAboutForm();
             aboutForm.Show();
         }
 
+        /// <summary>
+        /// Clears the datagridview and backend spreadsheet.
+        /// </summary>
         private void ClearGrid()
         {
             for (int i = 0; i < Constants.numberOfRows; ++i)

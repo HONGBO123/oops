@@ -285,7 +285,7 @@ namespace SpreadsheetEngine
             }
             else if (cell.Text.StartsWith("="))       // formula type
             {
-                if (cell.Text.Length > 1)
+                if (cell.Text.Length > 1)       // valid formula
                 {
                     try
                     {
@@ -334,7 +334,10 @@ namespace SpreadsheetEngine
                     bool success = Double.TryParse(cellReliesOnThisGuy.Value, out double result);
                     if (success) expTree.SetVar(cellName, result);                    // now that we have the cell, set its value in the expression tree
                     else expTree.SetVar(cellName, 0.0);
-                        //throw new ArgumentException(String.Format("Cell \"{0}\" contains a value that cannot be referenced in a formula.", cellReliesOnThisGuy.Name));
+                    // My Design Choice:
+                    //      For now, allow this because otherwise it makes loading/saving impossible. This can be fixed carefully, but I don't have
+                    //      the time to make a smart design choice... As such, I commented out my original exception throw.
+                    //throw new ArgumentException(String.Format("Cell \"{0}\" contains a value that cannot be referenced in a formula.", cellReliesOnThisGuy.Name));
                 }
                 cell.Value = expTree.Eval().ToString();  
             }
@@ -379,7 +382,7 @@ namespace SpreadsheetEngine
             }
             indices[0] -= 1;         // it's 1-indexed, but we need 0-indexed.
             string[] string_alphabet = _column_header_alphabet.Split(new char[] { ',' });
-            string alphabet = string.Join("", string_alphabet, 0, string_alphabet.Length - 1);       // "ABCDE...Z"
+            string alphabet = string.Join("", string_alphabet, 0, string_alphabet.Length);       // "ABCDE...Z"
             indices[1] = (alphabet.Length * --letterRepetitions) + alphabet.IndexOf(current_char);   // Column is simply (alphabet length * (letterRepetitions - 1)) + letter - 'A'...
             return indices;
         }
