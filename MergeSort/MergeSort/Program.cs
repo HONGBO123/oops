@@ -1,7 +1,9 @@
 ﻿/*
- * 
- * 
- * 
+ * CPTS 322 HW #10
+ * Project: Threaded MergeSort vs UnThreaded MergeSort
+ * Author: Kyler Little
+ * ID: 11472421
+ * Last Updated: 4/22/2018
  */
 
 using System;
@@ -39,7 +41,7 @@ namespace MergeSort
             {
                 // 1. Create the randomized list
                 List<int> toBeSorted = new List<int>(length);                   // create list with initial capacity 'length'
-                RandomIntListGenerator.Fill(ref toBeSorted, 0, 1000);           // randomly fill list with values from 0 to 1000
+                RandomIntListGenerator.Fill(ref toBeSorted, 0, Int32.MaxValue);           // randomly fill list with values from 0 to Int32.MaxValue
                 List<int> toBeSorted2 = new List<int>(toBeSorted);              // create identical copy
 
                 // 2. Test the different sorting methods for each 'length'
@@ -54,16 +56,16 @@ namespace MergeSort
                 endTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                     // print off the sorting's time
                 Console.WriteLine(String.Format("\tNormal Sort Time: {0} ms", endTime - startTime));
-                    // print list for debugging to see if it's actually sorted
-                //printList(toBeSorted);
+                        // print list for debugging to see if it's actually sorted
+                        //printList(toBeSorted);
                     // time the threaded sort
                 startTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                 threadedMergeSort.Sort(toBeSorted2);
                 endTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                     // print off the threaded sorting's time
                 Console.WriteLine(String.Format("\tThreaded Sort Time: {0} ms", endTime - startTime));
-                    // print list for debugging to see if it's actually sorted
-                //printList(toBeSorted2);
+                        // print list for debugging to see if it's actually sorted
+                        //printList(toBeSorted2);
             }
         }
     }
